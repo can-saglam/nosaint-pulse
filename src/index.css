@@ -1,0 +1,57 @@
+@font-face {
+  font-family: "Saans";
+  src: url("./assets/fonts/SaansTRIAL-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Saans";
+  src: url("./assets/fonts/SaansTRIAL-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Saans";
+  src: url("./assets/fonts/SaansTRIAL-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-canvas text-ink font-sans;
+  }
+}
+
+@layer utilities {
+  /* Tight, heavy "NO SAINT" display treatment */
+  .display {
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+  }
+  .display-tight {
+    letter-spacing: -0.045em;
+    line-height: 0.9;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
