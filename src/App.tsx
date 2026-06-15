@@ -13,6 +13,12 @@ import {
   parseImport,
   sampleAnswers,
 } from "@/lib/survey-utils";
+import {
+  isCloud,
+  pushCloud,
+  subscribeCloud,
+  type CloudStatus,
+} from "@/lib/cloud";
 
 // bump when the seed data shape changes so stale saves don't mask new defaults
 const STORAGE_KEY = "nosaint-surveys-v3";
@@ -47,13 +53,52 @@ export default function App() {
   }>({ step: 0, editing: false });
   const lastPush = useRef(0);
 
-  // persist on every change
+  // ----- cloud sync (Firestore) -----
+  const [cloudStatus, setCloudStatus] = useState<CloudStatus>(
+    isCloud ? "connecting" : "off"
+  );
+  const surveysRef = useRef(surveys);
+  surveysRef.current = surveys;
+  const lastSyncedRef = useRef<string>(""); // JSON last written-to / read-from cloud
+  const pushTimer = useRef<number | undefined>(undefined);
+
+  // live subscription: adopt remote changes; seed the cloud if it's empty
+  useEffect(() => {
+    if (!isCloud) return;
+    const unsub = subscribeCloud((remote) => {
+      if (remote == null) {
+        // no document yet — push whatever we have locally as the initial state
+        const json = JSON.stringify(surveysRef.current);
+        lastSyncedRef.current = json;
+        pushCloud(surveysRef.current).catch(() => {});
+        return;
+      }
+      const json = JSON.stringify(remote);
+      if (json === lastSyncedRef.current) return; // our own echo / unchanged
+      lastSyncedRef.current = json;
+      setSurveys(remote); // remote change from another device/person
+    }, setCloudStatus);
+    return unsub;
+  }, []);
+
+  // persist on every change: localStorage (offline cache) + cloud (debounced)
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(surveys));
     } catch {
       /* storage full / unavailable — non-fatal */
     }
+    if (!isCloud) return;
+    const json = JSON.stringify(surveys);
+    if (json === lastSyncedRef.current) return; // nothing new (or just applied remote)
+    window.clearTimeout(pushTimer.current);
+    pushTimer.current = window.setTimeout(() => {
+      pushCloud(surveys)
+        .then(() => {
+          lastSyncedRef.current = json;
+        })
+        .catch(() => setCloudStatus("error"));
+    }, 700);
   }, [surveys]);
 
   // history-aware mutation: snapshot current state, coalescing rapid edits
@@ -262,6 +307,7 @@ export default function App() {
       canRedo={future.length > 0}
       onUndo={undo}
       onRedo={redo}
+      cloudStatus={cloudStatus}
     />
   );
 }

@@ -47,6 +47,7 @@ export function Landing({
   canRedo,
   onUndo,
   onRedo,
+  cloudStatus,
 }: {
   segments: Segment[];
   onPick: (s: Segment) => void;
@@ -64,6 +65,7 @@ export function Landing({
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  cloudStatus: "off" | "connecting" | "synced" | "error";
 }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [query, setQuery] = useState("");
@@ -97,6 +99,7 @@ export function Landing({
             <span className="hidden rounded bg-ink/[0.06] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/45 sm:inline">
               Survey tool
             </span>
+            <CloudChip status={cloudStatus} />
           </div>
           <div className="flex items-center gap-1.5">
             <div className="mr-1 flex items-center rounded-lg border border-ink/15">
@@ -239,6 +242,28 @@ export function Landing({
         />
       )}
     </div>
+  );
+}
+
+function CloudChip({
+  status,
+}: {
+  status: "off" | "connecting" | "synced" | "error";
+}) {
+  const meta = {
+    off: { dot: "bg-ink/30", label: "Local only", title: "Saved in this browser. Add a Firebase config to sync." },
+    connecting: { dot: "bg-amber-400 animate-pulse", label: "Connecting…", title: "Connecting to the cloud…" },
+    synced: { dot: "bg-lime-dark", label: "Synced", title: "Live-synced to the cloud across devices." },
+    error: { dot: "bg-red-500", label: "Offline", title: "Cloud unreachable — changes are saved locally and will resync." },
+  }[status];
+  return (
+    <span
+      title={meta.title}
+      className="hidden items-center gap-1.5 rounded-full bg-ink/[0.05] px-2 py-0.5 text-[11px] font-semibold text-ink/55 sm:inline-flex"
+    >
+      <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
+      {meta.label}
+    </span>
   );
 }
 
