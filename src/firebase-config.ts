@@ -17,12 +17,12 @@
 // ---------------------------------------------------------------------------
 
 export const firebaseConfig = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_PROJECT.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  storageBucket: "PASTE_PROJECT.appspot.com",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId: "PASTE_APP_ID",
+  apiKey: "AIzaSyAUN98THsDbn3E4AonWmyA5qEqU4FORXag",
+  authDomain: "nosaint-survey.firebaseapp.com",
+  projectId: "nosaint-survey",
+  storageBucket: "nosaint-survey.firebasestorage.app",
+  messagingSenderId: "599975196445",
+  appId: "1:599975196445:web:bddfa000fdfeed119753f4",
 };
 
 // Cloud sync is enabled only once you've replaced the placeholders above.
