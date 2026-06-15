@@ -4,6 +4,19 @@ Pulse is a **static single-page app**. There's no backend — survey data is sto
 in the browser's `localStorage` and moved between machines with the built-in
 **Back up / Import** buttons. That makes hosting trivial, free, and safe.
 
+## ▶ It's live
+
+- **App:** https://can-saglam.github.io/nosaint-pulse/
+- **Repo:** https://github.com/can-saglam/nosaint-pulse (GitHub Pages, `gh-pages` branch)
+- **Redeploy after changes:** `npm run deploy` (builds + publishes to `gh-pages`).
+
+⚠️ **Caveats**
+- The site is **publicly accessible** (anyone with the URL). For internal-only use,
+  put it behind access control or keep the URL private.
+- The bundled **Saans TRIAL** font is evaluation-only — swap in a licensed font (or
+  a free alternative) before any real/long-term public use.
+- Data is **per-browser** (`localStorage`). Use **Back up / Import** to sync.
+
 ## 1. Build
 
 ```bash
