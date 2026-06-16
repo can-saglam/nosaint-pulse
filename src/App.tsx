@@ -450,26 +450,25 @@ function DraftBar({
     <AnimatePresence>
       {changeCount > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.25 }}
-          className="fixed left-1/2 top-4 z-50 -translate-x-1/2"
+          exit={{ opacity: 0, y: 12 }}
+          transition={{ duration: 0.2 }}
+          className="fixed bottom-4 right-4 z-50"
         >
-          <div className="flex items-center gap-3 rounded-full border border-white/10 bg-ink px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] sm:px-5 sm:py-2.5">
-            <span className="tabular-nums">
-              {changeCount} unsaved change{changeCount !== 1 ? "s" : ""}
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-ink px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+            <span className="tabular-nums text-white/60">
+              {changeCount}
             </span>
-            <span className="h-4 w-px bg-white/20" />
             <button
               onClick={onDiscard}
-              className="rounded-full px-3 py-1 text-xs font-semibold text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+              className="text-white/40 transition-colors hover:text-white"
             >
               Discard
             </button>
             <button
               onClick={onSave}
-              className="rounded-full bg-lime px-4 py-1 text-xs font-bold text-ink transition-colors hover:bg-lime-dark"
+              className="rounded-full bg-lime px-3 py-0.5 font-bold text-ink transition-colors hover:bg-lime-dark"
             >
               Save
             </button>
