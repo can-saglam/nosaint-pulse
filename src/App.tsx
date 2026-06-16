@@ -27,12 +27,26 @@ const STORAGE_KEY = "nosaint-surveys-v3";
 const seeded = (): Segment[] =>
   cloneSegments(seed).map((s) => ({ ...s, status: s.status ?? "live" }));
 
+// Backfill seed-only metadata (welcome copy, reward type) onto known seed
+// surveys if a sync ever drops it — keeps these self-healing against any
+// stale client that might overwrite the shared cloud doc.
+const seedById = new Map(seed.map((s) => [s.id, s]));
+const hydrate = (list: Segment[]): Segment[] =>
+  list.map((s) => {
+    const seedSeg = seedById.get(s.id);
+    if (!seedSeg) return s;
+    const patch: Partial<Segment> = {};
+    if (!s.welcome && seedSeg.welcome) patch.welcome = { ...seedSeg.welcome };
+    if (!s.reward && seedSeg.reward) patch.reward = seedSeg.reward;
+    return Object.keys(patch).length ? { ...s, ...patch } : s;
+  });
+
 const loadSurveys = (): Segment[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length) return parsed as Segment[];
+      if (Array.isArray(parsed) && parsed.length) return hydrate(parsed as Segment[]);
     }
   } catch {
     /* ignore corrupt storage */
@@ -83,7 +97,9 @@ export default function App() {
         syncedOnce.current = true;
         if (json === lastSyncedRef.current) return; // our own echo / unchanged
         lastSyncedRef.current = json;
-        setSurveys(remote); // authoritative state from the cloud / another device
+        // backfill seed-only meta if a stale client wiped it; the diff then
+        // re-pushes the healed copy back to the cloud
+        setSurveys(hydrate(remote));
       },
       (status) => {
         // once the cloud has answered (good or bad) it's safe to push edits
