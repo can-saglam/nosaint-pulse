@@ -131,7 +131,7 @@ export function QuestionEditor({
               key={t.value}
               onClick={() => changeType(t.value)}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                "rounded-full border px-3 py-2 text-xs font-semibold transition-colors",
                 question.type === t.value
                   ? "border-ink bg-ink text-white"
                   : "border-ink/20 bg-white text-ink/70 hover:border-ink/50"
@@ -179,7 +179,7 @@ export function QuestionEditor({
                       <button
                         onClick={() => moveOption(i, "up")}
                         disabled={i === 0}
-                        className="shrink-0 rounded-md p-0.5 text-ink/40 transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-30"
+                        className="shrink-0 rounded-md p-1.5 sm:p-0.5 text-ink/40 transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-30"
                         aria-label="Move option up"
                       >
                         <ChevronUp className="h-3.5 w-3.5" />
@@ -187,7 +187,7 @@ export function QuestionEditor({
                       <button
                         onClick={() => moveOption(i, "down")}
                         disabled={i === (question.options ?? []).length - 1}
-                        className="shrink-0 rounded-md p-0.5 text-ink/40 transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-30"
+                        className="shrink-0 rounded-md p-1.5 sm:p-0.5 text-ink/40 transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-30"
                         aria-label="Move option down"
                       >
                         <ChevronDown className="h-3.5 w-3.5" />
@@ -227,7 +227,7 @@ export function QuestionEditor({
                           value={question.branches?.[opt] ?? ""}
                           onChange={(e) => setBranch(opt, e.target.value)}
                           className={cn(
-                            "rounded-md border bg-white px-2 py-1 text-xs text-ink focus:border-ink focus:outline-none",
+                            "rounded-md border bg-white py-2 px-3 text-sm sm:py-1 sm:px-2 sm:text-xs text-ink focus:border-ink focus:outline-none",
                             loops(opt)
                               ? "border-amber-400 font-semibold"
                               : question.branches?.[opt]

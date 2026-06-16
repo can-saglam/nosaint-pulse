@@ -185,7 +185,7 @@ export function SurveyRunner({
     <div className="relative flex min-h-screen flex-col bg-canvas">
       {/* Top bar */}
       <header className="sticky top-0 z-20 bg-canvas/85 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-8">
           <div className="flex items-center gap-2.5 sm:gap-3.5">
             <Button
               variant="outline"
@@ -250,7 +250,7 @@ export function SurveyRunner({
       </header>
 
       {/* Body */}
-      <main className="relative mx-auto flex w-full max-w-3xl flex-1 items-center px-5 sm:px-8">
+      <main className="relative mx-auto flex w-full max-w-3xl flex-1 items-center px-4 sm:px-8">
         <AnimatePresence mode="wait" custom={dir}>
           {showWelcome ? (
             <WelcomeScreen
@@ -364,7 +364,7 @@ export function SurveyRunner({
                     {nextStep >= total ? "Finish" : "OK"}
                     <Check className="h-4 w-4" />
                   </Button>
-                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
                     press
                     {question!.type === "text" ? (
                       <Kbd>⌘ Enter</Kbd>
@@ -455,7 +455,7 @@ function WelcomeScreen({
       transition={{ duration: 0.35 }}
       className="w-full py-16"
     >
-      <h1 className="display-tight max-w-2xl text-4xl font-black text-ink sm:text-5xl">
+      <h1 className="display-tight max-w-2xl text-3xl font-black text-ink sm:text-5xl">
         {w?.title ?? "Got a minute?"}
       </h1>
       {w?.body && (
@@ -463,7 +463,7 @@ function WelcomeScreen({
           {w.body}
         </p>
       )}
-      <div className="mt-8 flex items-center gap-4">
+      <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
         <Button variant="lime" size="lg" onClick={onStart}>
           Start <ArrowRight className="h-4 w-4" />
         </Button>

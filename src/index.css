@@ -56,6 +56,12 @@
   }
 }
 
+/* Gentler letter-spacing on small screens for readability */
+@media (max-width: 639px) {
+  .display { letter-spacing: -0.015em; }
+  .display-tight { letter-spacing: -0.02em; }
+}
+
 /* Respect reduced-motion preference globally */
 @media (prefers-reduced-motion: reduce) {
   *,

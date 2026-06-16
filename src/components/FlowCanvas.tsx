@@ -778,7 +778,7 @@ export function FlowCanvas({
                   insertAt(ip.index);
                 }}
                 style={{ left: ip.x - 14, top: ip.y - 14 }}
-                className="absolute flex h-7 w-7 items-center justify-center rounded-full border border-ink/15 bg-white text-ink/50 shadow-[0_2px_6px_rgba(0,0,0,0.12)] ring-2 ring-canvas transition-all duration-150 hover:scale-[1.18] hover:border-ink hover:bg-lime hover:text-ink hover:shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
+                className="absolute flex h-9 w-9 sm:h-7 sm:w-7 items-center justify-center rounded-full border border-ink/15 bg-white text-ink/50 shadow-[0_2px_6px_rgba(0,0,0,0.12)] ring-2 ring-canvas transition-all duration-150 hover:scale-[1.18] hover:border-ink hover:bg-lime hover:text-ink hover:shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
               >
                 <Plus className="h-4 w-4" strokeWidth={2.5} />
               </button>
@@ -824,7 +824,7 @@ export function FlowCanvas({
         <div className="absolute bottom-5 right-5 flex flex-col items-center gap-1 rounded-xl border border-ink/10 bg-canvas/90 p-1.5 shadow-sm backdrop-blur">
           <button
             onClick={() => zoomBy(1.4)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink hover:bg-ink/[0.06]"
+            className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-ink hover:bg-ink/[0.06]"
             aria-label="Zoom in"
             title="Zoom in ( + )"
           >
@@ -835,7 +835,7 @@ export function FlowCanvas({
           </span>
           <button
             onClick={() => zoomBy(1 / 1.4)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink hover:bg-ink/[0.06]"
+            className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-ink hover:bg-ink/[0.06]"
             aria-label="Zoom out"
             title="Zoom out ( - )"
           >
@@ -844,7 +844,7 @@ export function FlowCanvas({
           <div className="my-0.5 h-px w-5 bg-ink/10" />
           <button
             onClick={resetView}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink hover:bg-ink/[0.06]"
+            className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-ink hover:bg-ink/[0.06]"
             aria-label="Fit to view"
             title="Fit to view ( F )"
           >
@@ -858,6 +858,7 @@ export function FlowCanvas({
           scroll or <kbd className="font-sans">+</kbd>/<kbd className="font-sans">−</kbd>/<kbd className="font-sans">F</kbd> to zoom ·
           Arrow keys to navigate · <kbd className="font-sans">Enter</kbd> to edit
         </div>
+        <div className="pointer-events-none absolute bottom-3 left-3 text-[10px] text-ink/30 sm:hidden">Tap to edit · pinch to zoom</div>
       </div>
     </div>
   );
@@ -1131,7 +1132,7 @@ function WelcomePanel({
       },
     });
   return (
-    <div className="absolute right-4 top-4 z-30 w-[340px] max-w-[calc(100%-2rem)] rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
+    <div className="absolute left-2 right-2 sm:left-auto sm:right-4 top-4 z-30 w-auto sm:w-[340px] max-w-[calc(100%-2rem)] rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-2 text-sm font-bold text-ink">
           <Play className="h-4 w-4" /> Welcome screen
@@ -1199,7 +1200,7 @@ function DetailsPanel({
 }) {
   const [confirming, setConfirming] = useState(false);
   return (
-    <div className="absolute right-4 top-4 z-30 w-[330px] max-w-[calc(100%-2rem)] rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
+    <div className="absolute left-2 right-2 sm:left-auto sm:right-4 top-4 z-30 w-auto sm:w-[330px] max-w-[calc(100%-2rem)] rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm font-bold text-ink">Survey details</p>
         <button
@@ -1422,7 +1423,7 @@ function ChecksPanel({
   const errors = issues.filter((i) => i.level === "error");
   const warns = issues.filter((i) => i.level === "warn");
   return (
-    <div className="absolute right-4 top-4 z-30 w-[340px] max-w-[calc(100%-2rem)] rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
+    <div className="absolute left-2 right-2 sm:left-auto sm:right-4 top-4 z-30 w-auto sm:w-[340px] max-w-[calc(100%-2rem)] rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-2 text-sm font-bold text-ink">
           <ShieldCheck className="h-4 w-4" /> Logic checks
@@ -1500,7 +1501,7 @@ function SimulatePanel({
   }, [results, segment.name]);
 
   return (
-    <div className="absolute right-4 top-4 z-30 flex max-h-[calc(100vh-7rem)] w-[360px] max-w-[calc(100%-2rem)] flex-col rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
+    <div className="absolute left-2 right-2 sm:left-auto sm:right-4 top-4 z-30 flex max-h-[calc(100vh-7rem)] w-auto sm:w-[360px] max-w-[calc(100%-2rem)] flex-col rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-2 text-sm font-bold text-ink">
           <Sparkles className="h-4 w-4" /> Simulate responses

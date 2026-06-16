@@ -139,7 +139,7 @@ export function Landing({
             </span>
             <CloudChip status={cloudStatus} />
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <div className="mr-1 flex items-center rounded-lg border border-ink/15">
               <IconBtn label="Undo (⌘Z)" disabled={!canUndo} onClick={onUndo}>
                 <Undo2 className="h-4 w-4" />
@@ -193,7 +193,7 @@ export function Landing({
                 className="h-9 w-44 rounded-full border border-ink/15 bg-white pl-8 pr-3 text-sm text-ink placeholder:text-ink/35 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 sm:w-56"
               />
             </div>
-            <div className="flex items-center rounded-full border border-ink/15 p-0.5">
+            <div className="flex flex-wrap items-center rounded-full border border-ink/15 p-0.5">
               {(["all", ...STATUSES] as const).map((f) => (
                 <button
                   key={f}
@@ -600,7 +600,7 @@ function CardMenu({
   onDelete: () => void;
 }) {
   const item =
-    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-sm text-ink/80 transition-colors hover:bg-ink/[0.06] hover:text-ink";
+    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-left text-sm text-ink/80 transition-colors hover:bg-ink/[0.06] hover:text-ink";
   const act = (fn: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
     fn();
@@ -613,9 +613,10 @@ function CardMenu({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const MENU_W = 224;
+  const MENU_W = Math.min(224, window.innerWidth - 16);
   const MENU_H = 360; // approx; used to decide flip
-  const left = Math.max(8, Math.min(anchor.right - MENU_W, window.innerWidth - MENU_W - 8));
+  const maxLeft = window.innerWidth - MENU_W - 8;
+  const left = Math.max(8, Math.min(anchor.right - MENU_W, maxLeft));
   const flipUp = anchor.bottom + MENU_H > window.innerHeight - 8;
   const top = flipUp ? undefined : anchor.bottom + 6;
   const bottom = flipUp ? window.innerHeight - anchor.top + 6 : undefined;
@@ -673,7 +674,7 @@ function CardMenu({
 
         <div className="my-1 h-px bg-ink/[0.07]" />
         <button
-          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
           onClick={act(onDelete)}
         >
           <Trash2 className="h-4 w-4" /> Delete
@@ -813,7 +814,7 @@ function ImportModal({
               setError(null);
             }}
             placeholder='{ "name": "…", "questions": [ … ] }'
-            className="h-44 w-full resize-none rounded-xl border border-ink/15 bg-white p-3 font-mono text-xs text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+            className="h-32 sm:h-44 w-full resize-none rounded-xl border border-ink/15 bg-white p-3 font-mono text-xs text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
           />
         )}
         {error && <p className="mt-2 text-xs font-medium text-red-600">{error}</p>}
@@ -869,8 +870,8 @@ function ImportModal({
 
 function Row({ label, value, query }: { label: string; value: string; query: string }) {
   return (
-    <div className="flex gap-2">
-      <span className="w-[5.5rem] shrink-0 font-semibold uppercase tracking-wide text-ink/35">
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+      <span className="sm:w-[5.5rem] sm:shrink-0 font-semibold uppercase tracking-wide text-ink/35">
         {label}
       </span>
       <span className="line-clamp-2 text-ink/70">{highlightMatch(value, query)}</span>
