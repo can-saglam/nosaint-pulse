@@ -190,7 +190,7 @@ export function Landing({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search surveys…"
                 aria-label="Search surveys"
-                className="h-9 w-44 rounded-full border border-ink/15 bg-white pl-8 pr-3 text-sm text-ink placeholder:text-ink/35 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 sm:w-56"
+                className="h-9 w-36 rounded-full border border-ink/15 bg-white pl-8 pr-3 text-sm text-ink placeholder:text-ink/35 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 sm:w-56"
               />
             </div>
             <div className="flex flex-wrap items-center rounded-full border border-ink/15 p-0.5">
@@ -242,7 +242,7 @@ export function Landing({
       <footer className="border-t border-ink/10 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-3 px-6 text-xs text-ink/40 sm:flex-row sm:items-center sm:px-10">
           <Logo className="h-3 text-ink/50" />
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <span>Changes are saved in this browser</span>
             {confirmReset ? (
               <span className="flex items-center gap-2">

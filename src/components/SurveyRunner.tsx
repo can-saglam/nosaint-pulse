@@ -289,10 +289,10 @@ export function SurveyRunner({
                 </span>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={addQuestion}>
-                    <Plus className="h-3.5 w-3.5" /> Add question
+                    <Plus className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Add question</span>
                   </Button>
                   <Button variant="outline" size="sm" onClick={duplicateCurrent}>
-                    <Copy className="h-3.5 w-3.5" /> Duplicate
+                    <Copy className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Duplicate</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -300,7 +300,7 @@ export function SurveyRunner({
                     onClick={deleteQuestion}
                     className="text-red-500 hover:bg-red-50 hover:text-red-600"
                   >
-                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                    <Trash2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Delete</span>
                   </Button>
                 </div>
               </div>
@@ -321,12 +321,12 @@ export function SurveyRunner({
               className="w-full py-16"
             >
               <div className="mb-7 flex items-start gap-3">
-                <span className="mt-1 flex items-center gap-1 text-sm font-bold text-ink/40">
+                <span className="mt-1 flex items-center gap-1 text-xs sm:text-sm font-bold text-ink/40">
                   {clampedStep + 1}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </span>
                 <div>
-                  <h2 className="display text-[1.7rem] font-extrabold leading-[1.1] text-ink sm:text-4xl">
+                  <h2 className="display text-xl sm:text-[1.7rem] font-extrabold leading-[1.1] text-ink">
                     {question!.title}
                     {question!.optional && (
                       <span className="ml-2 align-middle text-base font-medium text-muted-foreground">

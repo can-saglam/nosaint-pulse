@@ -454,7 +454,7 @@ function DraftBar({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 12 }}
           transition={{ duration: 0.2 }}
-          className="fixed bottom-4 right-4 z-50"
+          className="fixed bottom-20 right-4 z-50 sm:bottom-4"
         >
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-ink px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
             <span className="tabular-nums text-white/60">

@@ -73,3 +73,10 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* iPhone safe area inset support for fixed-position elements */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
