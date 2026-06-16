@@ -101,7 +101,9 @@ export function FlowCanvas({
   const [ty, setTy] = useState(200);
   const [scale, setScale] = useState(1);
   const [showDetails, setShowDetails] = useState(false);
-  const [panel, setPanel] = useState<null | "checks" | "simulate">(null);
+  const [panel, setPanel] = useState<null | "checks" | "simulate" | "welcome">(
+    null
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [live, setLive] = useState<{ id: string; x: number; y: number } | null>(
@@ -693,13 +695,16 @@ export function FlowCanvas({
                 : null
             )}
 
-            {/* Start node */}
+            {/* Start node — click to edit the welcome copy */}
             <Bookend
               kind="start"
               pos={startPos}
               label="Welcome"
               sub={segment.welcome?.title ?? segment.name}
-              onClick={() => onOpenRunner(0, false)}
+              onClick={() => {
+                setShowDetails(false);
+                setPanel("welcome");
+              }}
             />
 
             {/* Question nodes + Other branch */}
@@ -770,6 +775,18 @@ export function FlowCanvas({
             onChange={patchSeg}
             onClose={() => setShowDetails(false)}
             onDelete={onDelete}
+          />
+        )}
+
+        {panel === "welcome" && (
+          <WelcomePanel
+            segment={segment}
+            onChange={patchSeg}
+            onClose={() => setPanel(null)}
+            onPreview={() => {
+              setPanel(null);
+              onOpenRunner(0, false);
+            }}
           />
         )}
 
@@ -1067,6 +1084,85 @@ function BranchNode({ x, y }: { x: number; y: number }) {
       <p className="mt-0.5 text-xs text-ink/50">
         Shown only if respondent picks Other.
       </p>
+    </div>
+  );
+}
+
+function WelcomePanel({
+  segment,
+  onChange,
+  onClose,
+  onPreview,
+}: {
+  segment: Segment;
+  onChange: (p: Partial<Segment>) => void;
+  onClose: () => void;
+  onPreview: () => void;
+}) {
+  const set = (patch: Partial<NonNullable<Segment["welcome"]>>) =>
+    onChange({
+      welcome: {
+        title: segment.welcome?.title ?? "",
+        body: segment.welcome?.body ?? "",
+        ...patch,
+      },
+    });
+  return (
+    <div className="absolute right-4 top-4 z-30 w-[340px] max-w-[calc(100%-2rem)] rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="flex items-center gap-2 text-sm font-bold text-ink">
+          <Play className="h-4 w-4" /> Welcome screen
+        </p>
+        <button
+          onClick={onClose}
+          className="rounded-md p-1 text-ink/40 hover:bg-ink/5 hover:text-ink"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <p className="mb-4 text-xs text-muted-foreground">
+        The contextual intro shown before the first question.
+      </p>
+
+      <MetaField label="Headline">
+        <input
+          value={segment.welcome?.title ?? ""}
+          onChange={(e) => set({ title: e.target.value })}
+          placeholder="e.g. How was your first NO SAINT?"
+          className="w-full rounded-lg border border-ink/20 bg-white px-3 py-2 text-sm font-semibold text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none"
+        />
+      </MetaField>
+      <MetaField label="Message">
+        <textarea
+          value={segment.welcome?.body ?? ""}
+          onChange={(e) => set({ body: e.target.value })}
+          rows={4}
+          placeholder="A line or two of context…"
+          className="w-full resize-none rounded-lg border border-ink/20 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none"
+        />
+      </MetaField>
+
+      {/* live preview */}
+      <div className="mt-1 rounded-xl border border-ink/10 bg-canvas p-4">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-ink px-2 py-0.5 text-[10px] font-semibold text-lime">
+          <span className="h-1 w-1 rounded-full bg-lime" />
+          {segment.name}
+        </span>
+        <p className="display mt-2 text-xl font-black leading-tight text-ink">
+          {segment.welcome?.title || "Got a minute?"}
+        </p>
+        {segment.welcome?.body && (
+          <p className="mt-1.5 text-xs text-ink/60">{segment.welcome.body}</p>
+        )}
+      </div>
+
+      <button
+        onClick={onPreview}
+        className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-lime text-sm font-semibold text-ink transition-colors hover:bg-lime-dark"
+      >
+        <Play className="h-4 w-4" /> Preview the survey
+      </button>
     </div>
   );
 }
