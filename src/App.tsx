@@ -61,23 +61,36 @@ export default function App() {
   surveysRef.current = surveys;
   const lastSyncedRef = useRef<string>(""); // JSON last written-to / read-from cloud
   const pushTimer = useRef<number | undefined>(undefined);
+  // Don't push to the cloud until we've seen the authoritative state once.
+  // Otherwise a tab that boots with stale localStorage would clobber the cloud
+  // before the first snapshot lands (the bug that kept wiping the welcome copy).
+  const syncedOnce = useRef(false);
 
-  // live subscription: adopt remote changes; seed the cloud if it's empty
+  // live subscription: adopt remote changes; seed the cloud only if it's empty
   useEffect(() => {
     if (!isCloud) return;
-    const unsub = subscribeCloud((remote) => {
-      if (remote == null) {
-        // no document yet — push whatever we have locally as the initial state
-        const json = JSON.stringify(surveysRef.current);
+    const unsub = subscribeCloud(
+      (remote) => {
+        if (remote == null) {
+          // no document yet — seed it from whatever we have locally
+          const json = JSON.stringify(surveysRef.current);
+          lastSyncedRef.current = json;
+          syncedOnce.current = true;
+          pushCloud(surveysRef.current).catch(() => {});
+          return;
+        }
+        const json = JSON.stringify(remote);
+        syncedOnce.current = true;
+        if (json === lastSyncedRef.current) return; // our own echo / unchanged
         lastSyncedRef.current = json;
-        pushCloud(surveysRef.current).catch(() => {});
-        return;
+        setSurveys(remote); // authoritative state from the cloud / another device
+      },
+      (status) => {
+        // once the cloud has answered (good or bad) it's safe to push edits
+        if (status === "synced" || status === "error") syncedOnce.current = true;
+        setCloudStatus(status);
       }
-      const json = JSON.stringify(remote);
-      if (json === lastSyncedRef.current) return; // our own echo / unchanged
-      lastSyncedRef.current = json;
-      setSurveys(remote); // remote change from another device/person
-    }, setCloudStatus);
+    );
     return unsub;
   }, []);
 
@@ -89,6 +102,7 @@ export default function App() {
       /* storage full / unavailable — non-fatal */
     }
     if (!isCloud) return;
+    if (!syncedOnce.current) return; // wait for the first cloud snapshot before pushing
     const json = JSON.stringify(surveys);
     if (json === lastSyncedRef.current) return; // nothing new (or just applied remote)
     window.clearTimeout(pushTimer.current);
