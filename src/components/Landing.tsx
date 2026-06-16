@@ -160,16 +160,16 @@ export function Landing({
             <span className="font-medium text-ink/35">{segments.length}</span>
           </h1>
           <div className="flex items-center gap-2">
-            <div className="flex shrink-0 items-center rounded-full border border-ink/15 p-0.5">
+            <div className="flex shrink-0 items-center divide-x divide-ink/10 overflow-hidden border border-ink/15">
               {(["all", ...STATUSES] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
                   className={cn(
-                    "rounded-full px-2.5 py-1 text-xs font-semibold capitalize transition-colors",
+                    "px-3 py-1.5 text-xs font-semibold capitalize transition-colors",
                     filter === f
                       ? "bg-ink text-white"
-                      : "text-ink/50 hover:text-ink"
+                      : "text-ink/50 hover:bg-ink/[0.04] hover:text-ink"
                   )}
                 >
                   {f}
