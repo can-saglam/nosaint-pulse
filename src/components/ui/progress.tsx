@@ -20,7 +20,7 @@ export function Progress({
       className={cn("h-1 w-full overflow-hidden bg-ink/10", className)}
     >
       <div
-        className="h-full bg-lime transition-[width] duration-200 ease-out"
+        className="h-full bg-ink transition-[width] duration-200 ease-out"
         style={{ width: `${clamped}%` }}
       />
     </div>
