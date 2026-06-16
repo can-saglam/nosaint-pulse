@@ -340,6 +340,20 @@ export function FlowCanvas({
     qs.splice(index + 1, 0, duplicateQuestion(questions[index]));
     onUpdateSegment({ ...segment, questions: qs });
   };
+  const deleteAt = (index: number) => {
+    const removedId = questions[index]?.id;
+    const qs = questions
+      .filter((_, i) => i !== index)
+      // drop any skip-logic that pointed at the deleted question
+      .map((q) => {
+        if (!q.branches || !removedId) return q;
+        const entries = Object.entries(q.branches).filter(
+          ([, target]) => target !== removedId
+        );
+        return { ...q, branches: entries.length ? Object.fromEntries(entries) : undefined };
+      });
+    onUpdateSegment({ ...segment, questions: qs });
+  };
   // reorder: swap a question with its neighbour (position travels with the node)
   const move = (index: number, dir: -1 | 1) => {
     const j = index + dir;
@@ -705,6 +719,7 @@ export function FlowCanvas({
                     canRight={i < questions.length - 1}
                     onMove={(dir) => move(i, dir)}
                     onDuplicate={() => duplicateAt(i)}
+                    onDelete={() => deleteAt(i)}
                     onPointerDown={(e) => onNodeDown(e, q, i)}
                     onPointerMove={onNodeMove}
                     onPointerUp={onNodeUp}
@@ -856,6 +871,7 @@ function QuestionNode({
   canRight,
   onMove,
   onDuplicate,
+  onDelete,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -868,6 +884,7 @@ function QuestionNode({
   canRight: boolean;
   onMove: (dir: -1 | 1) => void;
   onDuplicate: () => void;
+  onDelete: () => void;
   onPointerDown: (e: React.PointerEvent) => void;
   onPointerMove: (e: React.PointerEvent) => void;
   onPointerUp: (e: React.PointerEvent) => void;
@@ -942,6 +959,18 @@ function QuestionNode({
             className="rounded p-0.5 text-ink/40 opacity-0 transition-all hover:bg-ink/[0.06] hover:text-ink group-hover:opacity-100"
           >
             <Copy className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onPointerDown={stop}
+            onClick={(e) => {
+              stop(e);
+              onDelete();
+            }}
+            title="Delete question"
+            aria-label="Delete question"
+            className="rounded p-0.5 text-ink/40 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
           <Pencil className="ml-0.5 h-3.5 w-3.5 text-ink/25 transition-colors group-hover:text-ink" />
         </div>
