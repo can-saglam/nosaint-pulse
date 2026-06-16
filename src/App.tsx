@@ -106,6 +106,7 @@ export default function App() {
   const [cloudStatus, setCloudStatus] = useState<CloudStatus>(
     isCloud ? "connecting" : "off"
   );
+  const cloudStatusRef = useRef<CloudStatus>(isCloud ? "connecting" : "off");
   const surveysRef = useRef(surveys);
   surveysRef.current = surveys;
   const lastSyncedRef = useRef<string>(""); // JSON last written-to / read-from cloud
@@ -142,6 +143,7 @@ export default function App() {
       (status) => {
         // once the cloud has answered (good or bad) it's safe to push edits
         if (status === "synced" || status === "error") syncedOnce.current = true;
+        cloudStatusRef.current = status;
         setCloudStatus(status);
       }
     );
@@ -155,13 +157,14 @@ export default function App() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch { /* storage full */ }
-    // push to Firestore (immediate)
-    if (isCloud && syncedOnce.current) {
+    // push to Firestore (immediate) — skip if cloud is in a known error state
+    if (isCloud && syncedOnce.current && cloudStatusRef.current !== "error") {
       const json = JSON.stringify(data);
       if (json !== lastSyncedRef.current) {
         pushCloud(data)
           .then(() => { lastSyncedRef.current = json; })
           .catch(() => {
+            cloudStatusRef.current = "error";
             setCloudStatus("error");
             toast("Sync failed — changes saved locally", "error");
           });

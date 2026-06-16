@@ -13,6 +13,7 @@ import {
   GripHorizontal,
   Maximize2,
   Minus,
+  MoreHorizontal,
   Pencil,
   Play,
   PlayCircle,
@@ -107,6 +108,7 @@ export function FlowCanvas({
   );
   const [addOpen, setAddOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [live, setLive] = useState<{ id: string; x: number; y: number } | null>(
     null
   );
@@ -118,6 +120,18 @@ export function FlowCanvas({
   const pan = useRef<{ x: number; y: number; tx: number; ty: number } | null>(
     null
   );
+  // multi-touch + rAF-coalesced panning, so mobile drags stay at ~60fps
+  const pointers = useRef<Map<number, Pt>>(new Map());
+  const pinch = useRef<{
+    d: number;
+    cx: number;
+    cy: number;
+    scale: number;
+    tx: number;
+    ty: number;
+  } | null>(null);
+  const panRaf = useRef<number | null>(null);
+  const panNext = useRef<{ tx: number; ty: number } | null>(null);
   const drag = useRef<{
     id: string;
     index: number;
@@ -166,10 +180,19 @@ export function FlowCanvas({
       setShowDetails(false);
       setAddOpen(false);
       setPreviewOpen(false);
+      setMoreOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // cancel any in-flight pan frame when unmounting
+  useEffect(
+    () => () => {
+      if (panRaf.current != null) cancelAnimationFrame(panRaf.current);
+    },
+    []
+  );
 
   // ---- wheel zoom (native, non-passive) ----
   useEffect(() => {
@@ -235,19 +258,71 @@ export function FlowCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segment.id]);
 
-  // ---- background pan ----
+  // ---- background pan + pinch zoom ----
+  // Coalesce pan updates to one state write per frame — pointermove fires far
+  // more often than 60fps on touch, and each write re-renders every node.
+  const flushPan = () => {
+    panRaf.current = null;
+    const n = panNext.current;
+    if (n) {
+      setTx(n.tx);
+      setTy(n.ty);
+      panNext.current = null;
+    }
+  };
   const onPointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest("[data-node]")) return;
-    pan.current = { x: e.clientX, y: e.clientY, tx, ty };
+    const el = wrapRef.current;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    if (pointers.current.size === 2 && el) {
+      // second finger down — start a pinch, anchored on the gesture midpoint
+      const [a, b] = [...pointers.current.values()];
+      const rect = el.getBoundingClientRect();
+      pinch.current = {
+        d: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        cx: (a.x + b.x) / 2 - rect.left,
+        cy: (a.y + b.y) / 2 - rect.top,
+        scale,
+        tx,
+        ty,
+      };
+      pan.current = null;
+    } else if (pointers.current.size === 1) {
+      pan.current = { x: e.clientX, y: e.clientY, tx, ty };
+    }
   };
   const onPointerMove = (e: React.PointerEvent) => {
+    if (pointers.current.has(e.pointerId)) {
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    if (pinch.current && pointers.current.size >= 2) {
+      const [a, b] = [...pointers.current.values()];
+      const p = pinch.current;
+      const next = clamp(p.scale * (Math.hypot(a.x - b.x, a.y - b.y) / p.d), 0.3, 2.4);
+      const k = next / p.scale;
+      setScale(next);
+      setTx(p.cx - (p.cx - p.tx) * k);
+      setTy(p.cy - (p.cy - p.ty) * k);
+      return;
+    }
     if (!pan.current) return;
-    setTx(pan.current.tx + (e.clientX - pan.current.x));
-    setTy(pan.current.ty + (e.clientY - pan.current.y));
+    panNext.current = {
+      tx: pan.current.tx + (e.clientX - pan.current.x),
+      ty: pan.current.ty + (e.clientY - pan.current.y),
+    };
+    if (panRaf.current == null) panRaf.current = requestAnimationFrame(flushPan);
   };
-  const onPointerUp = () => {
-    pan.current = null;
+  const onPointerUp = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) pinch.current = null;
+    if (pointers.current.size === 0) {
+      pan.current = null;
+    } else {
+      // a finger lifted mid-pinch — resume panning from the one that remains
+      const [rest] = [...pointers.current.values()];
+      pan.current = { x: rest.x, y: rest.y, tx, ty };
+    }
   };
 
   // ---- node drag ----
@@ -427,12 +502,12 @@ export function FlowCanvas({
       {/* Toolbar */}
       <header className="z-20 flex items-center justify-between gap-3 border-b border-ink/10 bg-canvas px-4 py-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3.5">
-          <Button variant="outline" size="sm" onClick={onBack}>
+          <Button variant="outline" size="sm" onClick={onBack} className="shrink-0">
             <ArrowLeft className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">All surveys</span>
           </Button>
           <div className="flex min-w-0 flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-ink/40">
+            <span className="hidden text-[10px] font-bold uppercase tracking-wider text-ink/40 sm:block">
               Flow · birds-eye
             </span>
             <div className="group flex min-w-0 items-center gap-1.5">
@@ -441,14 +516,16 @@ export function FlowCanvas({
                 onChange={(e) => patchSeg({ name: e.target.value })}
                 aria-label="Survey name"
                 spellCheck={false}
-                className="min-w-0 max-w-[42vw] truncate rounded border-b border-dashed border-ink/25 bg-transparent text-base font-bold text-ink outline-none transition-colors hover:border-ink focus:border-solid focus:border-ink"
+                className="min-w-0 max-w-[34vw] truncate rounded border-b border-dashed border-ink/25 bg-transparent text-sm font-bold text-ink outline-none transition-colors hover:border-ink focus:border-solid focus:border-ink sm:max-w-[42vw] sm:text-base"
               />
-              <Pencil className="h-3 w-3 shrink-0 text-ink/30 group-hover:text-ink/60" />
+              <Pencil className="hidden h-3 w-3 shrink-0 text-ink/30 group-hover:text-ink/60 sm:block" />
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="mr-0.5 flex items-center rounded-lg border border-ink/15">
+        <div className="flex min-w-0 items-center gap-1.5">
+          {/* undo/redo + analysis toggles collapse into a “More” menu on mobile;
+              Add and Preview (the primary actions) stay pinned and visible */}
+          <div className="mr-0.5 hidden shrink-0 items-center rounded-lg border border-ink/15 sm:flex">
             <button
               title="Undo (⌘Z)"
               disabled={!canUndo}
@@ -472,6 +549,7 @@ export function FlowCanvas({
           <Button
             variant={panel === "checks" ? "lime" : "outline"}
             size="sm"
+            className="hidden shrink-0 sm:inline-flex"
             onClick={() => {
               setShowDetails(false);
               setPanel(panel === "checks" ? null : "checks");
@@ -493,6 +571,7 @@ export function FlowCanvas({
           <Button
             variant={panel === "simulate" ? "lime" : "outline"}
             size="sm"
+            className="hidden shrink-0 sm:inline-flex"
             onClick={() => {
               setShowDetails(false);
               setPanel(panel === "simulate" ? null : "simulate");
@@ -505,6 +584,7 @@ export function FlowCanvas({
           <Button
             variant={showDetails ? "lime" : "outline"}
             size="sm"
+            className="hidden shrink-0 sm:inline-flex"
             onClick={() => {
               setPanel(null);
               setShowDetails((v) => !v);
@@ -514,8 +594,86 @@ export function FlowCanvas({
             <span className="hidden sm:inline">Details</span>
           </Button>
 
+          {/* Mobile-only overflow menu for the actions hidden above */}
+          <div className="relative shrink-0 sm:hidden">
+            <Button
+              variant={
+                panel === "checks" || panel === "simulate" || showDetails
+                  ? "lime"
+                  : "outline"
+              }
+              size="sm"
+              onClick={() => setMoreOpen((o) => !o)}
+              aria-label="More actions"
+            >
+              {errorCount > 0 ? (
+                <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+              ) : (
+                <MoreHorizontal className="h-4 w-4" />
+              )}
+            </Button>
+            {moreOpen && (
+              <Menu onClose={() => setMoreOpen(false)} align="right">
+                <MenuItem
+                  onClick={() => {
+                    onUndo();
+                    setMoreOpen(false);
+                  }}
+                >
+                  <Undo2 className="h-3.5 w-3.5 text-ink/50" /> Undo
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    onRedo();
+                    setMoreOpen(false);
+                  }}
+                >
+                  <Redo2 className="h-3.5 w-3.5 text-ink/50" /> Redo
+                </MenuItem>
+                <div className="my-1 h-px bg-ink/10" />
+                <MenuItem
+                  onClick={() => {
+                    setShowDetails(false);
+                    setPanel(panel === "checks" ? null : "checks");
+                    setMoreOpen(false);
+                  }}
+                >
+                  {errorCount > 0 ? (
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+                  ) : (
+                    <ShieldCheck className="h-3.5 w-3.5 text-ink/50" />
+                  )}
+                  Checks
+                  {issues.length > 0 && (
+                    <span className="ml-auto tabular-nums text-ink/40">
+                      {issues.length}
+                    </span>
+                  )}
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setShowDetails(false);
+                    setPanel(panel === "simulate" ? null : "simulate");
+                    setMoreOpen(false);
+                  }}
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-ink/50" /> Simulate
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setPanel(null);
+                    setShowDetails((v) => !v);
+                    setMoreOpen(false);
+                  }}
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-ink/50" /> Details
+                </MenuItem>
+              </Menu>
+            )}
+          </div>
+
           {/* Add question (with templates) */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -546,7 +704,7 @@ export function FlowCanvas({
           </div>
 
           {/* Preview (with sample data) */}
-          <div className="relative flex items-center">
+          <div className="relative flex shrink-0 items-center">
             <button
               onClick={() => onOpenRunner(0, false)}
               className="inline-flex h-9 items-center gap-2 rounded-l-full bg-lime pl-4 pr-3 text-sm font-semibold text-ink transition-colors hover:bg-lime-dark"
@@ -592,6 +750,7 @@ export function FlowCanvas({
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
           onPointerLeave={onPointerUp}
           className="h-full w-full cursor-grab touch-none active:cursor-grabbing"
           style={{
@@ -607,6 +766,7 @@ export function FlowCanvas({
               transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
               width: worldW,
               height: worldH,
+              willChange: "transform",
             }}
           >
             {/* connectors */}

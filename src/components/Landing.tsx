@@ -128,8 +128,8 @@ export function Landing({
       {/* App bar */}
       <header className="sticky top-0 z-30 border-b border-ink/10 bg-canvas/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-3 sm:px-10">
-          <div className="flex items-center gap-3">
-            <Logo className="h-4 text-ink" />
+          <div className="flex min-w-0 items-center gap-3">
+            <Logo className="h-4 shrink-0 text-ink" />
             <span className="h-4 w-px bg-ink/15" />
             <span className="text-base font-extrabold tracking-tight text-ink">
               Pulse
@@ -139,8 +139,8 @@ export function Landing({
             </span>
             <CloudChip status={cloudStatus} />
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <div className="mr-1 flex items-center rounded-lg border border-ink/15">
+          <div className="flex shrink-0 items-center gap-1.5">
+            <div className="mr-1 hidden items-center rounded-lg border border-ink/15 sm:flex">
               <IconBtn label="Undo (⌘Z)" disabled={!canUndo} onClick={onUndo}>
                 <Undo2 className="h-4 w-4" />
               </IconBtn>
@@ -152,7 +152,8 @@ export function Landing({
             <button
               onClick={onExportAll}
               title="Download a backup of all surveys"
-              className="inline-flex items-center gap-1.5 rounded-full border border-ink/20 px-3.5 py-2 text-sm font-semibold text-ink/75 transition-colors hover:border-ink hover:text-ink"
+              aria-label="Back up"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink/20 px-3 py-2 text-sm font-semibold text-ink/75 transition-colors hover:border-ink hover:text-ink sm:px-3.5"
             >
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Back up</span>
@@ -160,16 +161,19 @@ export function Landing({
             <button
               onClick={() => setImporting(true)}
               title="Import a survey or restore a backup"
-              className="inline-flex items-center gap-1.5 rounded-full border border-ink/20 px-3.5 py-2 text-sm font-semibold text-ink/75 transition-colors hover:border-ink hover:text-ink"
+              aria-label="Import"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink/20 px-3 py-2 text-sm font-semibold text-ink/75 transition-colors hover:border-ink hover:text-ink sm:px-3.5"
             >
               <FileUp className="h-4 w-4" />
               <span className="hidden sm:inline">Import</span>
             </button>
             <button
               onClick={onCreate}
-              className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+              aria-label="New survey"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink/90 sm:px-4"
             >
-              <Plus className="h-4 w-4" /> New survey
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">New survey</span>
             </button>
           </div>
         </div>
@@ -183,17 +187,17 @@ export function Landing({
             <span className="font-medium text-ink/35">{segments.length}</span>
           </h1>
           <div className="flex items-center gap-2">
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink/35" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search surveys…"
                 aria-label="Search surveys"
-                className="h-9 w-36 rounded-full border border-ink/15 bg-white pl-8 pr-3 text-sm text-ink placeholder:text-ink/35 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 sm:w-56"
+                className="h-9 w-full rounded-full border border-ink/15 bg-white pl-8 pr-3 text-sm text-ink placeholder:text-ink/35 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 sm:w-56"
               />
             </div>
-            <div className="flex flex-wrap items-center rounded-full border border-ink/15 p-0.5">
+            <div className="flex shrink-0 items-center rounded-full border border-ink/15 p-0.5">
               {(["all", ...STATUSES] as const).map((f) => (
                 <button
                   key={f}

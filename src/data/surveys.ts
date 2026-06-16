@@ -162,6 +162,30 @@ export const segments: Segment[] = [
         ],
       },
       {
+        id: "p6",
+        type: "single",
+        title: "Did you know NO SAINT is now stocked in 1,000+ shops across the UK?",
+        options: [
+          "No — I had no idea",
+          "Yes, I’ve spotted it in shops",
+          "Yes, and I’ve bought it in a shop",
+        ],
+        branches: {
+          "Yes, and I’ve bought it in a shop": "p5",
+        },
+      },
+      {
+        id: "p7",
+        type: "single",
+        title:
+          "Would being able to pick it up in a local shop make you more likely to give it a try?",
+        options: [
+          "Yes, definitely",
+          "Maybe",
+          "No, that’s not the blocker for me",
+        ],
+      },
+      {
         id: "p5",
         type: "scale",
         title: "How likely are you to try NO SAINT in the next 30 days?",
@@ -195,6 +219,18 @@ export const segments: Segment[] = [
         title: "Which flavour(s) did you try?",
         subtitle: "Select all the pods you’ve had so far.",
         options: [...flavours],
+      },
+      {
+        id: "f7",
+        type: "single",
+        title: "Where did you buy your NO SAINT?",
+        options: [
+          "Online at nosaint.co",
+          "A local shop or convenience store",
+          "A supermarket",
+          "A vape shop",
+          "Somewhere else",
+        ],
       },
       {
         id: "f3",
@@ -267,6 +303,18 @@ export const segments: Segment[] = [
           "4-pack at a time",
           "8-pack to save",
           "Mix depending on the month",
+        ],
+      },
+      {
+        id: "r8",
+        type: "single",
+        title: "Where do you usually buy your NO SAINT pods?",
+        options: [
+          "Online at nosaint.co",
+          "A local shop or convenience store",
+          "A supermarket",
+          "A vape shop",
+          "A mix of online and in-store",
         ],
       },
       {
@@ -401,6 +449,30 @@ export const segments: Segment[] = [
           "Honestly, nothing right now",
         ],
       },
+      {
+        id: "dp5",
+        type: "single",
+        title: "Did you know NO SAINT is now stocked in 1,000+ shops across the UK?",
+        options: [
+          "No — I had no idea",
+          "Yes, I’ve spotted it in shops",
+          "Yes, and I’ve bought it in a shop",
+        ],
+        branches: {
+          "Yes, and I’ve bought it in a shop": "END",
+        },
+      },
+      {
+        id: "dp6",
+        type: "single",
+        title:
+          "Would being able to grab NO SAINT from a shop near you make you more likely to give it a go?",
+        options: [
+          "Yes, definitely",
+          "Maybe",
+          "No, that’s not the blocker for me",
+        ],
+      },
     ],
   },
   {
@@ -487,6 +559,31 @@ export const segments: Segment[] = [
         ],
       },
       {
+        id: "df6",
+        type: "single",
+        title:
+          "Did you know you can now pick up NO SAINT pods in 1,000+ shops across the UK?",
+        options: [
+          "No — didn’t know that",
+          "Yes, I’ve seen them in shops",
+          "Yes, and I’ve bought pods in a shop",
+        ],
+        branches: {
+          "Yes, and I’ve bought pods in a shop": "df5",
+        },
+      },
+      {
+        id: "df7",
+        type: "single",
+        title:
+          "Would being able to grab pods from a local shop make you more likely to keep using NO SAINT?",
+        options: [
+          "Yes, that removes the hassle",
+          "Maybe",
+          "No, that’s not what’s stopping me",
+        ],
+      },
+      {
         id: "df5",
         type: "text",
         title: "Anything we could have done better after your first order?",
@@ -568,6 +665,30 @@ export const segments: Segment[] = [
           "Maybe, with the right reason",
           "Unlikely",
           "I no longer have the device",
+        ],
+      },
+      {
+        id: "dr6",
+        type: "single",
+        title: "Did you know NO SAINT is now stocked in 1,000+ shops across the UK?",
+        options: [
+          "No — that’s news to me",
+          "Yes, I’ve seen it around",
+          "Yes, and I’ve bought it in a shop recently",
+        ],
+        branches: {
+          "Yes, and I’ve bought it in a shop recently": "dr4",
+        },
+      },
+      {
+        id: "dr7",
+        type: "single",
+        title:
+          "Would being able to buy NO SAINT in local shops make you more likely to come back?",
+        options: [
+          "Yes, that’s a big help",
+          "Maybe",
+          "No, that’s not why I left",
         ],
       },
       {

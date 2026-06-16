@@ -185,20 +185,31 @@ export function SurveyRunner({
     <div className="relative flex min-h-screen flex-col bg-canvas">
       {/* Top bar */}
       <header className="sticky top-0 z-20 bg-canvas/85 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-8">
-          <div className="flex items-center gap-2.5 sm:gap-3.5">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4 sm:px-8">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3.5">
             <Button
               variant="outline"
               size="sm"
               onClick={onExit}
               aria-label="Back to all surveys"
+              className="shrink-0"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">All surveys</span>
             </Button>
-            <Logo className="h-4 text-ink" onClick={onExit} title="Back to home" />
+            <Logo
+              className="hidden h-4 text-ink sm:block"
+              onClick={onExit}
+              title="Back to home"
+            />
+            {/* mobile: surface the survey name where the logo would be */}
+            {!showWelcome && (
+              <span className="truncate text-sm font-semibold text-ink sm:hidden">
+                {segment.name}
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-2.5 text-xs font-medium text-muted-foreground">
+          <div className="flex shrink-0 items-center gap-2.5 text-xs font-medium text-muted-foreground">
             {sample && (
               <span className="hidden rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink sm:inline">
                 Sample data
@@ -206,7 +217,7 @@ export function SurveyRunner({
             )}
             {!showWelcome && <span className="hidden sm:inline">{segment.name}</span>}
             {!done && !showWelcome && total > 0 && (
-              <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 tabular-nums">
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-ink/[0.06] px-2.5 py-1 tabular-nums">
                 {Math.min(clampedStep + 1, total)} / {total}
               </span>
             )}
@@ -382,34 +393,57 @@ export function SurveyRunner({
 
       {/* Footer nav */}
       {!done && !showWelcome && total > 0 && (
-        <footer className="sticky bottom-0 z-20 flex items-center justify-between gap-1.5 bg-gradient-to-t from-canvas via-canvas to-transparent px-5 py-4 sm:px-8">
+        <footer className="sticky bottom-0 z-20 bg-gradient-to-t from-canvas via-canvas to-transparent px-4 pb-5 pt-4 sm:px-8">
           {editing ? (
-            <span className="text-xs text-muted-foreground">
-              Use the arrows to move between questions while editing.
-            </span>
+            <div className="mx-auto flex max-w-3xl items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                Use the arrows to move between questions while editing.
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => go(clampedStep - 1)}
+                  disabled={clampedStep === 0}
+                  aria-label="Previous"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => go(clampedStep + 1)}
+                  disabled={clampedStep >= total - 1}
+                  aria-label="Next"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           ) : (
-            <span />
+            <div className="mx-auto flex max-w-3xl gap-3">
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex-1 sm:flex-none"
+                onClick={() => back()}
+                disabled={clampedStep === 0 && history.length === 0}
+                aria-label="Previous"
+              >
+                <ArrowLeft className="h-4 w-4" /> Back
+              </Button>
+              <Button
+                variant={isAnswered ? "lime" : "outline"}
+                size="lg"
+                className="flex-[2] sm:flex-1"
+                onClick={() => advance()}
+                disabled={!isAnswered}
+                aria-label="Next"
+              >
+                Next <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           )}
-          <div className="flex gap-1.5">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => (editing ? go(clampedStep - 1) : back())}
-              disabled={editing ? clampedStep === 0 : clampedStep === 0 && history.length === 0}
-              aria-label="Previous"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => (editing ? go(clampedStep + 1) : advance())}
-              disabled={editing ? clampedStep >= total - 1 : !isAnswered}
-              aria-label="Next"
-            >
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
         </footer>
       )}
     </div>

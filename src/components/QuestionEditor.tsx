@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   AlertTriangle,
   ChevronDown,
@@ -39,6 +40,9 @@ export function QuestionEditor({
   /** full question list, for per-option skip-logic targets */
   questions?: Question[];
 }) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   const patch = (p: Partial<Question>) => onChange({ ...question, ...p });
 
   const setOption = (i: number, val: string) => {
@@ -78,6 +82,14 @@ export function QuestionEditor({
     const j = direction === "up" ? i - 1 : i + 1;
     if (j < 0 || j >= options.length) return;
     [options[i], options[j]] = [options[j], options[i]];
+    patch({ options });
+  };
+
+  const moveOptionDrag = (from: number, to: number) => {
+    if (from === to) return;
+    const options = [...(question.options ?? [])];
+    const [moved] = options.splice(from, 1);
+    options.splice(to, 0, moved);
     patch({ options });
   };
   const useFlavours = () => {
@@ -172,9 +184,25 @@ export function QuestionEditor({
             {(question.options ?? []).map((opt, i) => {
               const other = /^other/i.test(opt.trim());
               return (
-                <div key={i} className="flex flex-col gap-1.5">
+                <div
+                  key={i}
+                  draggable
+                  onDragStart={() => setDragIndex(i)}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverIndex(i); }}
+                  onDrop={() => {
+                    if (dragIndex !== null) moveOptionDrag(dragIndex, i);
+                    setDragIndex(null);
+                    setDragOverIndex(null);
+                  }}
+                  onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
+                  className={cn(
+                    "flex flex-col gap-1.5 transition-opacity",
+                    dragIndex === i && "opacity-40",
+                    dragOverIndex === i && dragIndex !== i && "ring-1 ring-ink/30 rounded-lg"
+                  )}
+                >
                   <div className="flex items-center gap-2">
-                    <GripVertical className="h-4 w-4 shrink-0 text-ink/25" />
+                    <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-ink/25 active:cursor-grabbing" />
                     <div className="flex shrink-0 flex-col">
                       <button
                         onClick={() => moveOption(i, "up")}
