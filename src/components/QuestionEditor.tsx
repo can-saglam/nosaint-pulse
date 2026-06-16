@@ -246,16 +246,16 @@ export function QuestionEditor({
                   </div>
                   {question.type === "single" && (
                     <div className="flex flex-col gap-1 pl-6">
-                      <div className="flex items-center gap-2">
-                        <CornerDownRight className="h-3.5 w-3.5 text-ink/30" />
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-ink/35">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-ink/30" />
+                        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-ink/35">
                           Skip to
                         </span>
                         <select
                           value={question.branches?.[opt] ?? ""}
                           onChange={(e) => setBranch(opt, e.target.value)}
                           className={cn(
-                            "rounded-md border bg-white py-2 px-3 text-sm sm:py-1 sm:px-2 sm:text-xs text-ink focus:border-ink focus:outline-none",
+                            "min-w-0 flex-1 truncate rounded-md border bg-white py-2 px-3 text-sm sm:py-1 sm:px-2 sm:text-xs text-ink focus:border-ink focus:outline-none",
                             loops(opt)
                               ? "border-amber-400 font-semibold"
                               : question.branches?.[opt]
