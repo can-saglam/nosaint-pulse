@@ -241,7 +241,10 @@ function NumberScale({
   for (let n = from; n <= to; n++) nums.push(n);
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(2rem,1fr))] gap-1.5">
+      <div
+        className="grid gap-1 sm:gap-1.5"
+        style={{ gridTemplateColumns: `repeat(${nums.length}, minmax(0, 1fr))` }}
+      >
         {nums.map((n) => {
           const isSel = value === n;
           return (
@@ -249,7 +252,7 @@ function NumberScale({
               key={n}
               onClick={() => onChange(n)}
               className={cn(
-                "flex h-10 sm:h-12 items-center justify-center rounded-lg border-2 text-base font-bold transition-all active:scale-95",
+                "flex h-11 items-center justify-center rounded-lg border-2 text-sm sm:h-12 sm:text-base font-bold transition-all active:scale-95",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
                 isSel
                   ? "border-ink bg-ink text-lime"
