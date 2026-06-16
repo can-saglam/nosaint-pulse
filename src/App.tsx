@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Landing } from "@/components/Landing";
 import { SurveyRunner } from "@/components/SurveyRunner";
 import { FlowCanvas } from "@/components/FlowCanvas";
@@ -95,6 +96,12 @@ export default function App() {
   }>({ step: 0, editing: false });
   const lastPush = useRef(0);
 
+  // ----- draft mode: change tracking -----
+  const savedSurveysRef = useRef<Segment[]>(surveys);
+  const [changeCount, setChangeCount] = useState(0);
+  const changeCountRef = useRef(0);
+  useEffect(() => { changeCountRef.current = changeCount; }, [changeCount]);
+
   // ----- cloud sync (Firestore) -----
   const [cloudStatus, setCloudStatus] = useState<CloudStatus>(
     isCloud ? "connecting" : "off"
@@ -102,10 +109,7 @@ export default function App() {
   const surveysRef = useRef(surveys);
   surveysRef.current = surveys;
   const lastSyncedRef = useRef<string>(""); // JSON last written-to / read-from cloud
-  const pushTimer = useRef<number | undefined>(undefined);
   // Don't push to the cloud until we've seen the authoritative state once.
-  // Otherwise a tab that boots with stale localStorage would clobber the cloud
-  // before the first snapshot lands (the bug that kept wiping the welcome copy).
   const syncedOnce = useRef(false);
 
   // live subscription: adopt remote changes; seed the cloud only if it's empty
@@ -125,9 +129,15 @@ export default function App() {
         syncedOnce.current = true;
         if (json === lastSyncedRef.current) return; // our own echo / unchanged
         lastSyncedRef.current = json;
-        // backfill seed-only meta if a stale client wiped it; the diff then
-        // re-pushes the healed copy back to the cloud
-        setSurveys(hydrate(remote));
+        const hydrated = hydrate(remote);
+        // always update the saved baseline
+        savedSurveysRef.current = hydrated;
+        // only adopt remote state if the user has no unsaved changes
+        if (changeCountRef.current === 0) {
+          setSurveys(hydrated);
+        } else {
+          toast("Remote changes received — save or discard to sync");
+        }
       },
       (status) => {
         // once the cloud has answered (good or bad) it's safe to push edits
@@ -138,41 +148,58 @@ export default function App() {
     return unsub;
   }, []);
 
-  // persist on every change: localStorage (offline cache) + cloud (debounced)
-  useEffect(() => {
+  // ----- save & discard -----
+  const save = useCallback(() => {
+    const data = surveysRef.current;
+    // persist to localStorage
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(surveys));
-    } catch {
-      /* storage full / unavailable — non-fatal */
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch { /* storage full */ }
+    // push to Firestore (immediate)
+    if (isCloud && syncedOnce.current) {
+      const json = JSON.stringify(data);
+      if (json !== lastSyncedRef.current) {
+        pushCloud(data)
+          .then(() => { lastSyncedRef.current = json; })
+          .catch(() => {
+            setCloudStatus("error");
+            toast("Sync failed — changes saved locally", "error");
+          });
+      }
     }
-    if (!isCloud) return;
-    if (!syncedOnce.current) return; // wait for the first cloud snapshot before pushing
-    const json = JSON.stringify(surveys);
-    if (json === lastSyncedRef.current) return; // nothing new (or just applied remote)
-    window.clearTimeout(pushTimer.current);
-    pushTimer.current = window.setTimeout(() => {
-      pushCloud(surveys)
-        .then(() => {
-          lastSyncedRef.current = json;
-        })
-        .catch(() => {
-          setCloudStatus("error");
-          toast("Sync failed — changes saved locally", "error");
-        });
-    }, 700);
-  }, [surveys]);
+    // update baseline & reset tracking
+    savedSurveysRef.current = data;
+    setChangeCount(0);
+    setPast([]);
+    setFuture([]);
+    toast("Changes saved");
+  }, []);
+
+  const discard = useCallback(() => {
+    if (!window.confirm("Discard all unsaved changes?")) return;
+    setSurveys(savedSurveysRef.current);
+    setChangeCount(0);
+    setPast([]);
+    setFuture([]);
+    toast("Changes discarded");
+  }, []);
 
   // history-aware mutation: snapshot current state, coalescing rapid edits
   const commit = useCallback(
     (next: Segment[]) => {
+      const now = Date.now();
+      const coalesce = now - lastPush.current < 500;
       setSurveys((curr) => {
-        const now = Date.now();
         setPast((p) =>
-          now - lastPush.current < 500 && p.length ? p : [...p, curr].slice(-60)
+          coalesce && p.length ? p : [...p, curr].slice(-60)
         );
-        lastPush.current = now;
         return next;
       });
+      // increment change count only for discrete (non-coalesced) actions
+      if (!coalesce) {
+        setChangeCount((c) => c + 1);
+      }
+      lastPush.current = now;
       setFuture([]);
     },
     []
@@ -186,6 +213,7 @@ export default function App() {
         setFuture((f) => [curr, ...f].slice(0, 60));
         return prev;
       });
+      setChangeCount((c) => Math.max(0, c - 1));
       lastPush.current = 0;
       toast("Undone");
       return p.slice(0, -1);
@@ -200,6 +228,7 @@ export default function App() {
         setPast((p) => [...p, curr].slice(-60));
         return nextState;
       });
+      setChangeCount((c) => c + 1);
       lastPush.current = 0;
       toast("Redone");
       return f.slice(1);
@@ -207,6 +236,7 @@ export default function App() {
   }, []);
 
   // ⌘/Ctrl+Z undo · ⌘/Ctrl+Shift+Z (or Ctrl+Y) redo — but let inputs keep native undo
+  // ⌘/Ctrl+S save
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
@@ -219,11 +249,26 @@ export default function App() {
       } else if ((k === "z" && e.shiftKey) || k === "y") {
         e.preventDefault();
         redo();
+      } else if (k === "s") {
+        e.preventDefault();
+        if (changeCountRef.current > 0) save();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [undo, redo]);
+  }, [undo, redo, save]);
+
+  // warn before closing with unsaved changes
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (changeCountRef.current > 0) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   const active = surveys.find((s) => s.id === activeId) ?? null;
 
@@ -303,22 +348,28 @@ export default function App() {
   const exportAllSurveys = () =>
     downloadJSON("pulse-backup.json", exportAll(surveys));
 
+  // reset persists immediately (confirmed destructive action, not a draft edit)
   const resetAll = () => {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      /* ignore */
-    }
-    setSurveys(seeded());
+    const fresh = seeded();
+    setSurveys(fresh);
+    savedSurveysRef.current = fresh;
+    setChangeCount(0);
     setPast([]);
     setFuture([]);
     setActiveId(null);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)); } catch {}
+    if (isCloud && syncedOnce.current) pushCloud(fresh).catch(() => {});
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const draftBar = (
+    <DraftBar changeCount={changeCount} onSave={save} onDiscard={discard} />
+  );
 
   if (active && view === "canvas") {
     return (
       <>
+      {draftBar}
       <Toaster />
       <FlowCanvas
         key={active.id}
@@ -341,6 +392,7 @@ export default function App() {
   if (active) {
     return (
       <>
+      {draftBar}
       <Toaster />
       <SurveyRunner
         key={active.id}
@@ -358,6 +410,7 @@ export default function App() {
 
   return (
     <>
+    {draftBar}
     <Toaster />
     <Landing
       segments={surveys}
@@ -381,5 +434,48 @@ export default function App() {
       cloudStatus={cloudStatus}
     />
     </>
+  );
+}
+
+function DraftBar({
+  changeCount,
+  onSave,
+  onDiscard,
+}: {
+  changeCount: number;
+  onSave: () => void;
+  onDiscard: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {changeCount > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.25 }}
+          className="fixed left-1/2 top-4 z-50 -translate-x-1/2"
+        >
+          <div className="flex items-center gap-3 rounded-full border border-white/10 bg-ink px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] sm:px-5 sm:py-2.5">
+            <span className="tabular-nums">
+              {changeCount} unsaved change{changeCount !== 1 ? "s" : ""}
+            </span>
+            <span className="h-4 w-px bg-white/20" />
+            <button
+              onClick={onDiscard}
+              className="rounded-full px-3 py-1 text-xs font-semibold text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              Discard
+            </button>
+            <button
+              onClick={onSave}
+              className="rounded-full bg-lime px-4 py-1 text-xs font-bold text-ink transition-colors hover:bg-lime-dark"
+            >
+              Save
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
