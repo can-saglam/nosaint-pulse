@@ -125,7 +125,7 @@ export function QuestionEditor({
   const hasOther = (question.options ?? []).some((o) => /^other/i.test(o.trim()));
 
   return (
-    <div className="rounded-2xl border-2 border-dashed border-lime-dark bg-lime/[0.06] p-5 sm:p-6">
+    <div className="rounded-2xl border-2 border-dashed border-lime-dark bg-ink/[0.03] p-5 sm:p-6">
       <div className="mb-4 flex items-center gap-2">
         <span className="rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-lime">
           Editing
