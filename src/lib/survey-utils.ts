@@ -25,6 +25,7 @@ const cloneQuestion = (q: Question): Question => ({
 /** Deep clone of a segment (keeps ids — used for seeding / undo snapshots). */
 export const cloneSegment = (s: Segment): Segment => ({
   ...s,
+  welcome: s.welcome ? { ...s.welcome } : undefined,
   questions: s.questions.map(cloneQuestion),
 });
 
@@ -50,6 +51,7 @@ export const duplicateSegment = (s: Segment, index: number): Segment => {
     index,
     name: `${s.name} (copy)`,
     status: "draft",
+    welcome: s.welcome ? { ...s.welcome } : undefined,
     questions,
   };
 };
@@ -316,6 +318,7 @@ export const exportSegment = (s: Segment): string => {
     accent: s.accent,
     status: s.status ?? "draft",
     reward: s.reward ?? "pods",
+    welcome: s.welcome,
     questions: s.questions.map(({ x, y, ...q }) => q),
   };
   return JSON.stringify(clean, null, 2);
@@ -349,9 +352,15 @@ export const parseSegment = (json: string, index: number): Segment => {
     accent: raw.accent === "lime" ? "lime" : "ink",
     status: "draft",
     reward: raw.reward === "discount" ? "discount" : "pods",
+    welcome: normalizeWelcome(raw.welcome),
     questions,
   };
 };
+
+const normalizeWelcome = (w: any): Segment["welcome"] =>
+  w && (w.title || w.body)
+    ? { title: String(w.title ?? ""), body: String(w.body ?? "") }
+    : undefined;
 
 // ---- full backup (all surveys) + smart import ----
 export const exportAll = (surveys: Segment[]): string =>
@@ -387,6 +396,7 @@ const normalizeSegment = (s: any, index: number): Segment => ({
   accent: s?.accent === "lime" ? "lime" : "ink",
   status: ["draft", "ready", "live"].includes(s?.status) ? s.status : "draft",
   reward: s?.reward === "discount" ? "discount" : "pods",
+  welcome: normalizeWelcome(s?.welcome),
   questions: Array.isArray(s?.questions) ? s.questions.map(normalizeQuestion) : [],
 });
 

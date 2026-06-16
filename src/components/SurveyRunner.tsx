@@ -48,9 +48,13 @@ export function SurveyRunner({
   );
   const [otherAnswers, setOtherAnswers] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(initialEditing);
+  // show the welcome intro first on a fresh run; skip it when jumping to a
+  // question or opening straight into the editor
+  const [started, setStarted] = useState(initialEditing || initialStep > 0);
 
   const clampedStep = Math.min(step, Math.max(total - 1, 0));
   const done = !editing && step >= total && total > 0;
+  const showWelcome = !started && !editing && total > 0 && !done;
   const question = done ? null : segment.questions[clampedStep] ?? null;
   const current = question ? answers[question.id] : null;
 
@@ -201,7 +205,7 @@ export function SurveyRunner({
               </span>
             )}
             <span className="hidden sm:inline">{segment.name}</span>
-            {!done && total > 0 && (
+            {!done && !showWelcome && total > 0 && (
               <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 tabular-nums">
                 {Math.min(clampedStep + 1, total)} / {total}
               </span>
@@ -237,13 +241,26 @@ export function SurveyRunner({
             </Button>
           </div>
         </div>
-        <Progress value={done ? 100 : total ? (clampedStep / total) * 100 : 0} />
+        <Progress
+          value={
+            done ? 100 : showWelcome ? 0 : total ? (clampedStep / total) * 100 : 0
+          }
+        />
       </header>
 
       {/* Body */}
       <main className="relative mx-auto flex w-full max-w-3xl flex-1 items-center px-5 sm:px-8">
         <AnimatePresence mode="wait" custom={dir}>
-          {done ? (
+          {showWelcome ? (
+            <WelcomeScreen
+              key="welcome"
+              segment={segment}
+              onStart={() => {
+                setDir(1);
+                setStarted(true);
+              }}
+            />
+          ) : done ? (
             <DoneScreen
               key="done"
               segment={segment}
@@ -363,7 +380,7 @@ export function SurveyRunner({
       </main>
 
       {/* Footer nav */}
-      {(!done && total > 0) && (
+      {!done && !showWelcome && total > 0 && (
         <footer className="sticky bottom-0 z-20 flex items-center justify-between gap-1.5 bg-gradient-to-t from-canvas via-canvas to-transparent px-5 py-4 sm:px-8">
           {editing ? (
             <span className="text-xs text-muted-foreground">
@@ -417,6 +434,47 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         <Plus className="h-4 w-4" /> Add a question
       </Button>
     </div>
+  );
+}
+
+function WelcomeScreen({
+  segment,
+  onStart,
+}: {
+  segment: Segment;
+  onStart: () => void;
+}) {
+  const w = segment.welcome;
+  return (
+    <motion.div
+      key="welcome"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+      transition={{ duration: 0.35 }}
+      className="w-full py-16"
+    >
+      <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-ink px-3 py-1 text-xs font-semibold text-lime">
+        <span className="h-1.5 w-1.5 rounded-full bg-lime" />
+        {segment.name}
+      </p>
+      <h1 className="display-tight max-w-2xl text-4xl font-black text-ink sm:text-5xl">
+        {w?.title ?? "Got a minute?"}
+      </h1>
+      {w?.body && (
+        <p className="mt-5 max-w-xl text-lg text-muted-foreground sm:text-xl">
+          {w.body}
+        </p>
+      )}
+      <div className="mt-8 flex items-center gap-4">
+        <Button variant="lime" size="lg" onClick={onStart}>
+          Start <ArrowRight className="h-4 w-4" />
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          {segment.questions.length} questions · under a minute
+        </span>
+      </div>
+    </motion.div>
   );
 }
 

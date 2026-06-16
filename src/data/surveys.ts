@@ -70,6 +70,8 @@ export interface Segment {
    * "discount" = first-order offer for no-device segments. Defaults to "pods".
    */
   reward?: "pods" | "discount";
+  /** contextual intro shown before the first question */
+  welcome?: { title: string; body: string };
   questions: Question[];
 }
 
@@ -83,6 +85,10 @@ export const segments: Segment[] = [
     blurb: "Recently active, hasn’t ordered yet.",
     accent: "lime",
     reward: "discount",
+    welcome: {
+      title: "Before you try NO SAINT…",
+      body: "You signed up but haven’t ordered yet — no rush. A few quick taps on what’s holding you back, and there’s a first-order offer waiting at the end.",
+    },
     questions: [
       {
         id: "p1",
@@ -146,6 +152,10 @@ export const segments: Segment[] = [
     goal: "Understand first-impression satisfaction and reorder intent",
     blurb: "One order in. First impressions matter.",
     accent: "ink",
+    welcome: {
+      title: "How was your first NO SAINT?",
+      body: "One order in — we’d love your honest first impressions. It takes under a minute, and there’s a free pod pack at the end.",
+    },
     questions: [
       {
         id: "f1",
@@ -209,6 +219,10 @@ export const segments: Segment[] = [
     goal: "Understand loyalty drivers, flavour preferences and upsell signals",
     blurb: "Loyal. Reordering. Worth listening to.",
     accent: "lime",
+    welcome: {
+      title: "You’re a regular now — thank you.",
+      body: "A few quick questions on what keeps you coming back, and what we could do better. There’s a free pod pack waiting at the end.",
+    },
     questions: [
       {
         id: "r1",
@@ -290,6 +304,10 @@ export const segments: Segment[] = [
     blurb: "Signed up, went quiet. Never ordered.",
     accent: "ink",
     reward: "discount",
+    welcome: {
+      title: "Still curious about NO SAINT?",
+      body: "You signed up a while ago but never ordered. Mind telling us why, in a few taps? There’s a first-order offer in it for you.",
+    },
     questions: [
       {
         id: "dp1",
@@ -348,6 +366,10 @@ export const segments: Segment[] = [
     goal: "One-and-done vs. a recoverable lapse",
     blurb: "Tried it once. Didn’t come back.",
     accent: "lime",
+    welcome: {
+      title: "We noticed you haven’t been back.",
+      body: "You tried NO SAINT once — we’d love to know how it went and what we could’ve done better. Quick and honest; free pod pack at the end.",
+    },
     questions: [
       {
         id: "df1",
@@ -411,6 +433,10 @@ export const segments: Segment[] = [
     goal: "Understand churn from your most valuable segment",
     blurb: "Was a repeat buyer. Now silent.",
     accent: "ink",
+    welcome: {
+      title: "We’ve missed you.",
+      body: "You were a regular, then things went quiet. A couple of quick questions on what changed — your honest take really helps. Free pod pack waiting.",
+    },
     questions: [
       {
         id: "dr1",

@@ -683,8 +683,8 @@ export function FlowCanvas({
             <Bookend
               kind="start"
               pos={startPos}
-              label="Start"
-              sub={segment.name}
+              label="Welcome"
+              sub={segment.welcome?.title ?? segment.name}
               onClick={() => onOpenRunner(0, false)}
             />
 
@@ -1099,6 +1099,37 @@ function DetailsPanel({
           value={segment.blurb}
           onChange={(e) => onChange({ blurb: e.target.value })}
           className="w-full rounded-lg border border-ink/20 bg-white px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
+        />
+      </MetaField>
+      <MetaField label="Welcome title">
+        <input
+          value={segment.welcome?.title ?? ""}
+          onChange={(e) =>
+            onChange({
+              welcome: {
+                title: e.target.value,
+                body: segment.welcome?.body ?? "",
+              },
+            })
+          }
+          placeholder="Intro headline shown before Q1"
+          className="w-full rounded-lg border border-ink/20 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none"
+        />
+      </MetaField>
+      <MetaField label="Welcome message">
+        <textarea
+          value={segment.welcome?.body ?? ""}
+          onChange={(e) =>
+            onChange({
+              welcome: {
+                title: segment.welcome?.title ?? "",
+                body: e.target.value,
+              },
+            })
+          }
+          rows={3}
+          placeholder="A line or two of context…"
+          className="w-full resize-none rounded-lg border border-ink/20 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none"
         />
       </MetaField>
       <MetaField label="Who (definition)">
