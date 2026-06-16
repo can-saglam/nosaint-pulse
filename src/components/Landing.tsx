@@ -12,7 +12,6 @@ import {
   PlayCircle,
   Plus,
   Redo2,
-  Search,
   Trash2,
   Undo2,
   Workflow,
@@ -29,26 +28,6 @@ import {
 import { cn } from "@/lib/utils";
 
 const STATUSES: SurveyStatus[] = ["draft", "ready", "live"];
-
-/** Wraps substrings matching `query` in a <mark> tag for search highlighting. */
-function highlightMatch(text: string, query: string): React.ReactNode {
-  if (!query.trim()) return text;
-  const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`(${escaped})`, "gi");
-  const parts = text.split(regex);
-  if (parts.length === 1) return text;
-  // Use a fresh regex (without `g` flag) to avoid lastIndex issues
-  const testRegex = new RegExp(`^${escaped}$`, "i");
-  return parts.map((part, i) =>
-    testRegex.test(part) ? (
-      <mark key={i} className="bg-lime/30 rounded-sm">
-        {part}
-      </mark>
-    ) : (
-      part
-    )
-  );
-}
 
 function SkeletonCards() {
   return (
@@ -101,7 +80,6 @@ export function Landing({
   cloudStatus: "off" | "connecting" | "synced" | "error";
 }) {
   const [confirmReset, setConfirmReset] = useState(false);
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<SurveyStatus | "all">("all");
   const [importing, setImporting] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(segments.length > 0);
@@ -110,18 +88,13 @@ export function Landing({
     if (segments.length > 0) setHasLoadedOnce(true);
   }, [segments.length]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return segments.filter((s) => {
-      if (filter !== "all" && (s.status ?? "live") !== filter) return false;
-      if (!q) return true;
-      return (
-        s.name.toLowerCase().includes(q) ||
-        s.definition.toLowerCase().includes(q) ||
-        s.goal.toLowerCase().includes(q)
-      );
-    });
-  }, [segments, query, filter]);
+  const filtered = useMemo(
+    () =>
+      segments.filter(
+        (s) => filter === "all" || (s.status ?? "live") === filter
+      ),
+    [segments, filter]
+  );
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -179,7 +152,7 @@ export function Landing({
         </div>
       </header>
 
-      {/* Toolbar: title, search, filter */}
+      {/* Toolbar: title, filter */}
       <main className="mx-auto max-w-6xl px-6 pb-24 pt-7 sm:px-10">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-lg font-bold text-ink">
@@ -187,16 +160,6 @@ export function Landing({
             <span className="font-medium text-ink/35">{segments.length}</span>
           </h1>
           <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:flex-none">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink/35" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search surveys…"
-                aria-label="Search surveys"
-                className="h-9 w-full rounded-full border border-ink/15 bg-white pl-8 pr-3 text-sm text-ink placeholder:text-ink/35 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 sm:w-56"
-              />
-            </div>
             <div className="flex shrink-0 items-center rounded-full border border-ink/15 p-0.5">
               {(["all", ...STATUSES] as const).map((f) => (
                 <button
@@ -229,7 +192,6 @@ export function Landing({
                 key={s.id}
                 segment={s}
                 delay={i * 0.03}
-                query={query}
                 onPick={onPick}
                 onPreviewSample={onPreviewSample}
                 onOpenCanvas={onOpenCanvas}
@@ -363,7 +325,6 @@ function StatusChip({
 function SegmentCard({
   segment,
   delay,
-  query,
   onPick,
   onPreviewSample,
   onOpenCanvas,
@@ -374,7 +335,6 @@ function SegmentCard({
 }: {
   segment: Segment;
   delay: number;
-  query: string;
   onPick: (s: Segment) => void;
   onPreviewSample: (s: Segment) => void;
   onOpenCanvas: (s: Segment) => void;
@@ -500,14 +460,14 @@ function SegmentCard({
         />
       ) : (
         <h3 className="display text-2xl font-extrabold text-ink">
-          {highlightMatch(segment.name, query)}
+          {segment.name}
         </h3>
       )}
-      <p className="mt-1.5 text-sm font-medium text-ink/55">{highlightMatch(segment.blurb, query)}</p>
+      <p className="mt-1.5 text-sm font-medium text-ink/55">{segment.blurb}</p>
 
       <div className="mt-5 flex-1 space-y-2.5 text-xs">
-        <Row label="Who" value={segment.definition} query={query} />
-        <Row label="We want to learn" value={segment.goal} query={query} />
+        <Row label="Who" value={segment.definition} />
+        <Row label="We want to learn" value={segment.goal} />
       </div>
 
       <div className="mt-6 flex items-center justify-between border-t border-ink/[0.07] pt-4">
@@ -872,13 +832,13 @@ function ImportModal({
   );
 }
 
-function Row({ label, value, query }: { label: string; value: string; query: string }) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
       <span className="sm:w-[5.5rem] sm:shrink-0 font-semibold uppercase tracking-wide text-ink/35">
         {label}
       </span>
-      <span className="line-clamp-2 text-ink/70">{highlightMatch(value, query)}</span>
+      <span className="line-clamp-2 text-ink/70">{value}</span>
     </div>
   );
 }
