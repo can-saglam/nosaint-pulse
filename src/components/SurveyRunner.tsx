@@ -196,7 +196,7 @@ export function SurveyRunner({
               <ArrowLeft className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">All surveys</span>
             </Button>
-            <Logo className="h-4 text-ink" onClick={onExit} />
+            <Logo className="h-4 text-ink" onClick={onExit} title="Back to home" />
           </div>
           <div className="flex items-center gap-2.5 text-xs font-medium text-muted-foreground">
             {sample && (
@@ -204,7 +204,7 @@ export function SurveyRunner({
                 Sample data
               </span>
             )}
-            <span className="hidden sm:inline">{segment.name}</span>
+            {!showWelcome && <span className="hidden sm:inline">{segment.name}</span>}
             {!done && !showWelcome && total > 0 && (
               <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 tabular-nums">
                 {Math.min(clampedStep + 1, total)} / {total}
@@ -245,6 +245,7 @@ export function SurveyRunner({
           value={
             done ? 100 : showWelcome ? 0 : total ? (clampedStep / total) * 100 : 0
           }
+          label="Survey progress"
         />
       </header>
 
@@ -454,10 +455,6 @@ function WelcomeScreen({
       transition={{ duration: 0.35 }}
       className="w-full py-16"
     >
-      <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-ink px-3 py-1 text-xs font-semibold text-lime">
-        <span className="h-1.5 w-1.5 rounded-full bg-lime" />
-        {segment.name}
-      </p>
       <h1 className="display-tight max-w-2xl text-4xl font-black text-ink sm:text-5xl">
         {w?.title ?? "Got a minute?"}
       </h1>

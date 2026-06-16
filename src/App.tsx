@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Landing } from "@/components/Landing";
 import { SurveyRunner } from "@/components/SurveyRunner";
 import { FlowCanvas } from "@/components/FlowCanvas";
+import { Toaster, toast } from "@/components/ui/toast";
 import { segments as seed, type Segment } from "@/data/surveys";
 import {
   cloneSegments,
@@ -38,6 +39,33 @@ const hydrate = (list: Segment[]): Segment[] =>
     const patch: Partial<Segment> = {};
     if (!s.welcome && seedSeg.welcome) patch.welcome = { ...seedSeg.welcome };
     if (!s.reward && seedSeg.reward) patch.reward = seedSeg.reward;
+
+    // Merge missing seed questions and branch updates so new questions
+    // added to seed data automatically appear in existing saved surveys.
+    const existingIds = new Set(s.questions.map((q) => q.id));
+    const seedQs = seedSeg.questions;
+    let questions = [...s.questions];
+    let qChanged = false;
+
+    for (let i = 0; i < seedQs.length; i++) {
+      const sq = seedQs[i];
+      if (!existingIds.has(sq.id)) {
+        // insert after the preceding seed question (or at the start)
+        const prev = i > 0 ? seedQs[i - 1] : null;
+        const idx = prev ? questions.findIndex((q) => q.id === prev.id) : -1;
+        questions.splice(idx + 1, 0, { ...sq });
+        existingIds.add(sq.id);
+        qChanged = true;
+      }
+      // copy seed branch rules onto stored questions that are missing them
+      const existing = questions.find((q) => q.id === sq.id);
+      if (existing && sq.branches && !existing.branches) {
+        existing.branches = { ...sq.branches };
+        qChanged = true;
+      }
+    }
+    if (qChanged) patch.questions = questions;
+
     return Object.keys(patch).length ? { ...s, ...patch } : s;
   });
 
@@ -127,7 +155,10 @@ export default function App() {
         .then(() => {
           lastSyncedRef.current = json;
         })
-        .catch(() => setCloudStatus("error"));
+        .catch(() => {
+          setCloudStatus("error");
+          toast("Sync failed — changes saved locally", "error");
+        });
     }, 700);
   }, [surveys]);
 
@@ -156,6 +187,7 @@ export default function App() {
         return prev;
       });
       lastPush.current = 0;
+      toast("Undone");
       return p.slice(0, -1);
     });
   }, []);
@@ -169,6 +201,7 @@ export default function App() {
         return nextState;
       });
       lastPush.current = 0;
+      toast("Redone");
       return f.slice(1);
     });
   }, []);
@@ -212,25 +245,25 @@ export default function App() {
     });
     setActiveId(id);
     setView("run");
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const openCanvas = (id: string) => {
     setActiveId(id);
     setView("canvas");
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const exit = () => {
     setActiveId(null);
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const deleteSurvey = (id: string) => {
     commit(surveys.filter((s) => s.id !== id));
     if (activeId === id) {
       setActiveId(null);
-      window.scrollTo({ top: 0 });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -280,11 +313,13 @@ export default function App() {
     setPast([]);
     setFuture([]);
     setActiveId(null);
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   if (active && view === "canvas") {
     return (
+      <>
+      <Toaster />
       <FlowCanvas
         key={active.id}
         segment={active}
@@ -299,11 +334,14 @@ export default function App() {
         onUndo={undo}
         onRedo={redo}
       />
+      </>
     );
   }
 
   if (active) {
     return (
+      <>
+      <Toaster />
       <SurveyRunner
         key={active.id}
         segment={active}
@@ -314,10 +352,13 @@ export default function App() {
         onExit={exit}
         onOpenCanvas={() => openCanvas(active.id)}
       />
+      </>
     );
   }
 
   return (
+    <>
+    <Toaster />
     <Landing
       segments={surveys}
       onPick={(s) => openRun(s.id)}
@@ -339,5 +380,6 @@ export default function App() {
       onRedo={redo}
       cloudStatus={cloudStatus}
     />
+    </>
   );
 }

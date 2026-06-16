@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Copy,
   CornerDownRight,
+  Download,
   Gift,
   GripHorizontal,
   Maximize2,
@@ -109,6 +110,7 @@ export function FlowCanvas({
   const [live, setLive] = useState<{ id: string; x: number; y: number } | null>(
     null
   );
+  const [focusedNode, setFocusedNode] = useState<number | null>(null);
 
   const issues = useMemo(() => validateSurvey(segment), [segment]);
   const errorCount = issues.filter((i) => i.level === "error").length;
@@ -190,7 +192,7 @@ export function FlowCanvas({
     return () => el.removeEventListener("wheel", onWheel);
   }, [scale, tx, ty]);
 
-  // ---- keyboard zoom shortcuts ----
+  // ---- keyboard zoom + node navigation shortcuts ----
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -204,12 +206,26 @@ export function FlowCanvas({
       } else if (e.key === "0" || e.key === "f" || e.key === "F") {
         e.preventDefault();
         fitView();
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedNode((prev) => {
+          const max = questions.length - 1;
+          return prev == null ? 0 : Math.min(prev + 1, max);
+        });
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedNode((prev) => {
+          return prev == null ? 0 : Math.max(prev - 1, 0);
+        });
+      } else if (e.key === "Enter" && focusedNode != null) {
+        e.preventDefault();
+        onOpenRunner(focusedNode, true);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scale, tx, ty]);
+  }, [scale, tx, ty, focusedNode, questions.length]);
 
   // ---- auto-fit the flow into view when a survey is opened ----
   useEffect(() => {
@@ -595,7 +611,7 @@ export function FlowCanvas({
           >
             {/* connectors */}
             <svg
-              className="pointer-events-none absolute"
+              className="pointer-events-none absolute text-ink"
               style={{ left: -SVG_OFF, top: -SVG_OFF }}
               width={worldW + SVG_OFF * 2}
               height={worldH + SVG_OFF * 2}
@@ -610,14 +626,14 @@ export function FlowCanvas({
                   markerHeight="6"
                   orient="auto-start-reverse"
                 >
-                  <path d="M 0 1 L 9 5 L 0 9 z" fill="#222222" />
+                  <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor" />
                 </marker>
               </defs>
               <g transform={`translate(${SVG_OFF}, ${SVG_OFF})`}>
                 {/* start -> first (or end) */}
                 <path
                   d={edge(startPos, questions.length ? qPos[0] : endPos, "right")}
-                  stroke="#222222"
+                  stroke="currentColor"
                   strokeWidth={2}
                   fill="none"
                   markerEnd="url(#arrow)"
@@ -632,7 +648,7 @@ export function FlowCanvas({
                     <g key={`edge-${q.id}`}>
                       <path
                         d={edge(here, next, "right")}
-                        stroke="#222222"
+                        stroke="currentColor"
                         strokeWidth={2}
                         fill="none"
                         markerEnd="url(#arrow)"
@@ -645,7 +661,7 @@ export function FlowCanvas({
                             <path
                               key={`b-${q.id}-${opt}`}
                               d={edge(here, tp, "bottom")}
-                              stroke="#222222"
+                              stroke="currentColor"
                               strokeOpacity={0.4}
                               strokeWidth={1.75}
                               strokeDasharray="6 5"
@@ -662,7 +678,8 @@ export function FlowCanvas({
                           } ${here.y + NODE_H + 30}, ${here.x + NODE_W / 2} ${
                             here.y + BRANCH_DY - 30
                           }, ${here.x + NODE_W / 2} ${here.y + BRANCH_DY}`}
-                          stroke="#C2D300"
+                          className="text-lime-dark"
+                          stroke="currentColor"
                           strokeWidth={2}
                           strokeDasharray="5 5"
                           fill="none"
@@ -720,6 +737,7 @@ export function FlowCanvas({
                     index={i}
                     pos={p}
                     dragging={live?.id === q.id}
+                    focused={focusedNode === i}
                     canLeft={i > 0}
                     canRight={i < questions.length - 1}
                     onMove={(dir) => move(i, dir)}
@@ -837,7 +855,8 @@ export function FlowCanvas({
         {/* Hint */}
         <div className="pointer-events-none absolute bottom-5 left-5 hidden text-xs text-ink/40 sm:block">
           Click to edit · ◀ ▶ reorder · + insert between · drag to reposition ·
-          scroll or <kbd className="font-sans">+</kbd>/<kbd className="font-sans">−</kbd>/<kbd className="font-sans">F</kbd> to zoom
+          scroll or <kbd className="font-sans">+</kbd>/<kbd className="font-sans">−</kbd>/<kbd className="font-sans">F</kbd> to zoom ·
+          Arrow keys to navigate · <kbd className="font-sans">Enter</kbd> to edit
         </div>
       </div>
     </div>
@@ -884,6 +903,7 @@ function QuestionNode({
   index,
   pos,
   dragging,
+  focused,
   canLeft,
   canRight,
   onMove,
@@ -897,6 +917,7 @@ function QuestionNode({
   index: number;
   pos: Pt;
   dragging: boolean;
+  focused: boolean;
   canLeft: boolean;
   canRight: boolean;
   onMove: (dir: -1 | 1) => void;
@@ -921,6 +942,8 @@ function QuestionNode({
         "group absolute flex cursor-grab touch-none select-none flex-col gap-2 overflow-hidden rounded-2xl border-2 bg-white p-4 text-left transition-shadow active:cursor-grabbing",
         dragging
           ? "border-ink shadow-[0_18px_44px_-12px_rgba(0,0,0,0.35)]"
+          : focused
+          ? "border-lime ring-2 ring-lime/40 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.25)]"
           : "border-ink/15 hover:border-ink hover:shadow-[0_12px_30px_-12px_rgba(0,0,0,0.25)]"
       )}
     >
@@ -1145,11 +1168,7 @@ function WelcomePanel({
 
       {/* live preview */}
       <div className="mt-1 rounded-xl border border-ink/10 bg-canvas p-4">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-ink px-2 py-0.5 text-[10px] font-semibold text-lime">
-          <span className="h-1 w-1 rounded-full bg-lime" />
-          {segment.name}
-        </span>
-        <p className="display mt-2 text-xl font-black leading-tight text-ink">
+        <p className="display text-xl font-black leading-tight text-ink">
           {segment.welcome?.title || "Got a minute?"}
         </p>
         {segment.welcome?.body && (
@@ -1455,8 +1474,30 @@ function SimulatePanel({
   onClose: () => void;
 }) {
   const [n, setN] = useState(100);
+  const [customN, setCustomN] = useState("");
   const [results, setResults] = useState<SimResult[] | null>(null);
-  const run = () => setResults(simulateResponses(segment, n));
+  const effectiveN = customN ? Math.max(1, Math.min(5000, Number(customN) || 0)) : n;
+  const run = () => setResults(simulateResponses(segment, effectiveN));
+
+  const exportCsv = useCallback(() => {
+    if (!results) return;
+    const lines = results.map((r) => {
+      const detail = r.counts
+        ? Object.entries(r.counts).map(([k, v]) => `${k}: ${v}`).join("; ")
+        : r.histogram
+        ? Object.entries(r.histogram).map(([k, v]) => `${k}: ${v}`).join("; ") + ` (avg ${r.avg?.toFixed(1) ?? "–"})`
+        : `${r.total} free-text responses`;
+      return `"Q${r.index + 1}","${r.title.replace(/"/g, '""')}","${detail}"`;
+    });
+    const csv = "Question,Title,Results\n" + lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${segment.name.replace(/\s+/g, "-").toLowerCase()}-sim.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [results, segment.name]);
 
   return (
     <div className="absolute right-4 top-4 z-30 flex max-h-[calc(100vh-7rem)] w-[360px] max-w-[calc(100%-2rem)] flex-col rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
@@ -1476,19 +1517,29 @@ function SimulatePanel({
         Generates random respondents through the flow (respecting skip-logic) to
         sanity-check distributions.
       </p>
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         {[50, 100, 500].map((v) => (
           <button
             key={v}
-            onClick={() => setN(v)}
+            onClick={() => { setN(v); setCustomN(""); }}
             className={cn(
               "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
-              n === v ? "border-ink bg-ink text-white" : "border-ink/15 text-ink/60 hover:border-ink/40"
+              !customN && n === v ? "border-ink bg-ink text-white" : "border-ink/15 text-ink/60 hover:border-ink/40"
             )}
           >
             {v}
           </button>
         ))}
+        <input
+          type="number"
+          min={1}
+          max={5000}
+          value={customN}
+          onChange={(e) => setCustomN(e.target.value)}
+          placeholder="Custom"
+          aria-label="Custom sample size"
+          className="w-20 rounded-full border border-ink/15 px-3 py-1 text-xs font-semibold text-ink tabular-nums placeholder:text-ink/30 focus:border-ink focus:outline-none"
+        />
         <button
           onClick={run}
           className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-lime px-3.5 py-1.5 text-xs font-bold text-ink hover:bg-lime-dark"
@@ -1497,11 +1548,19 @@ function SimulatePanel({
         </button>
       </div>
       {results && (
-        <div className="-mr-1 space-y-4 overflow-auto pr-1">
-          {results.map((r) => (
-            <SimRow key={r.questionId} r={r} />
-          ))}
-        </div>
+        <>
+          <div className="-mr-1 space-y-4 overflow-auto pr-1">
+            {results.map((r) => (
+              <SimRow key={r.questionId} r={r} />
+            ))}
+          </div>
+          <button
+            onClick={exportCsv}
+            className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/60 transition-colors hover:border-ink hover:text-ink"
+          >
+            <Download className="h-3.5 w-3.5" /> Export CSV
+          </button>
+        </>
       )}
     </div>
   );

@@ -1,4 +1,5 @@
-import { Star } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import type { Question } from "@/data/surveys";
@@ -39,21 +40,28 @@ export function QuestionInput({
           onOtherChange={onOtherChange ?? (() => {})}
         />
       );
-    case "text":
+    case "text": {
+      const textVal = (value as string) ?? "";
       return (
-        <Textarea
-          autoFocus
-          value={(value as string) ?? ""}
-          placeholder={question.placeholder ?? "Type your answer…"}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              onAdvance();
-            }
-          }}
-        />
+        <div className="flex flex-col gap-1.5">
+          <Textarea
+            autoFocus
+            value={textVal}
+            placeholder={question.placeholder ?? "Type your answer…"}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                onAdvance();
+              }
+            }}
+          />
+          <p className="text-right text-xs text-muted-foreground">
+            {textVal.length} character{textVal.length !== 1 ? "s" : ""}
+          </p>
+        </div>
       );
+    }
     case "scale":
       return (
         <NumberScale
@@ -121,6 +129,17 @@ function ChoiceInput({
 
   const otherSelected = selected.some(isOtherOption);
 
+  // Item #3 – track which option was just selected for the green-flash cue
+  const [confirmedOpt, setConfirmedOpt] = useState<string | null>(null);
+
+  // Item #11 – scroll the "Other" input into view on mobile
+  const otherInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (otherSelected && otherInputRef.current) {
+      otherInputRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [otherSelected]);
+
   const toggle = (opt: string) => {
     if (multi) {
       const next = selected.includes(opt)
@@ -130,7 +149,10 @@ function ChoiceInput({
     } else {
       onChange(opt);
       // Don't rush past "Other" — give space to type the detail.
-      if (!isOtherOption(opt)) window.setTimeout(onAdvance, 280);
+      if (!isOtherOption(opt)) {
+        setConfirmedOpt(opt);
+        window.setTimeout(onAdvance, 280);
+      }
     }
   };
 
@@ -138,6 +160,7 @@ function ChoiceInput({
     <div className="flex flex-col gap-2.5">
       {question.options!.map((opt, i) => {
         const isSel = selected.includes(opt);
+        const isConfirmed = confirmedOpt === opt;
         return (
           <button
             key={`${opt}-${i}`}
@@ -145,20 +168,28 @@ function ChoiceInput({
             className={cn(
               "group flex items-center gap-3.5 rounded-xl border-2 px-4 py-3.5 text-left transition-all duration-150 active:scale-[0.99]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
-              isSel
-                ? "border-ink bg-ink text-white"
-                : "border-ink/15 bg-muted hover:border-ink/50 hover:bg-white"
+              isConfirmed
+                ? "border-lime bg-lime/20 text-ink"
+                : isSel
+                  ? "border-ink bg-ink text-white"
+                  : "border-ink/15 bg-muted hover:border-ink/50 hover:bg-white"
             )}
           >
             <span
               className={cn(
-                "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs font-bold transition-colors",
-                isSel
+                "relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs font-bold transition-colors",
+                isConfirmed
                   ? "border-lime bg-lime text-ink"
-                  : "border-ink/25 text-ink/50 group-hover:border-ink/50"
+                  : isSel
+                    ? "border-lime bg-lime text-ink"
+                    : "border-ink/25 text-ink/50 group-hover:border-ink/50"
               )}
             >
-              {LETTERS[i]}
+              {isConfirmed ? (
+                <Check className="h-4 w-4 stroke-[3]" />
+              ) : (
+                LETTERS[i]
+              )}
             </span>
             <span className="text-base font-medium sm:text-lg">{opt}</span>
           </button>
@@ -167,6 +198,7 @@ function ChoiceInput({
 
       {otherSelected && (
         <input
+          ref={otherInputRef}
           autoFocus
           value={otherValue}
           onChange={(e) => onOtherChange(e.target.value)}

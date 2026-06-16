@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import {
@@ -29,6 +29,39 @@ import {
 import { cn } from "@/lib/utils";
 
 const STATUSES: SurveyStatus[] = ["draft", "ready", "live"];
+
+/** Wraps substrings matching `query` in a <mark> tag for search highlighting. */
+function highlightMatch(text: string, query: string): React.ReactNode {
+  if (!query.trim()) return text;
+  const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${escaped})`, "gi");
+  const parts = text.split(regex);
+  if (parts.length === 1) return text;
+  // Use a fresh regex (without `g` flag) to avoid lastIndex issues
+  const testRegex = new RegExp(`^${escaped}$`, "i");
+  return parts.map((part, i) =>
+    testRegex.test(part) ? (
+      <mark key={i} className="bg-lime/30 rounded-sm">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+
+function SkeletonCards() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="animate-pulse rounded-2xl bg-ink/5 h-[180px]"
+        />
+      ))}
+    </div>
+  );
+}
 
 export function Landing({
   segments,
@@ -71,6 +104,11 @@ export function Landing({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<SurveyStatus | "all">("all");
   const [importing, setImporting] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(segments.length > 0);
+
+  useEffect(() => {
+    if (segments.length > 0) setHasLoadedOnce(true);
+  }, [segments.length]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -151,6 +189,7 @@ export function Landing({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search surveys…"
+                aria-label="Search surveys"
                 className="h-9 w-44 rounded-full border border-ink/15 bg-white pl-8 pr-3 text-sm text-ink placeholder:text-ink/35 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 sm:w-56"
               />
             </div>
@@ -173,7 +212,9 @@ export function Landing({
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {!hasLoadedOnce && segments.length === 0 ? (
+          <SkeletonCards />
+        ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-ink/15 py-20 text-center text-sm text-ink/45">
             No surveys match.
           </div>
@@ -184,6 +225,7 @@ export function Landing({
                 key={s.id}
                 segment={s}
                 delay={i * 0.03}
+                query={query}
                 onPick={onPick}
                 onPreviewSample={onPreviewSample}
                 onOpenCanvas={onOpenCanvas}
@@ -317,6 +359,7 @@ function StatusChip({
 function SegmentCard({
   segment,
   delay,
+  query,
   onPick,
   onPreviewSample,
   onOpenCanvas,
@@ -327,6 +370,7 @@ function SegmentCard({
 }: {
   segment: Segment;
   delay: number;
+  query: string;
   onPick: (s: Segment) => void;
   onPreviewSample: (s: Segment) => void;
   onOpenCanvas: (s: Segment) => void;
@@ -395,7 +439,7 @@ function SegmentCard({
               setDraft(segment.name);
               setRenaming(true);
             }}
-            className="rounded-md p-1.5 text-ink/35 opacity-0 transition-all hover:bg-ink/[0.06] hover:text-ink focus:opacity-100 group-hover:opacity-100"
+            className="rounded-md p-1.5 text-ink/35 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all hover:bg-ink/[0.06] hover:text-ink focus:opacity-100"
             aria-label="Rename survey"
           >
             <Pencil className="h-4 w-4" />
@@ -411,7 +455,7 @@ function SegmentCard({
             }}
             className={cn(
               "rounded-md p-1.5 text-ink/35 transition-all hover:bg-ink/[0.06] hover:text-ink",
-              menuOpen ? "bg-ink/[0.06] text-ink opacity-100" : "opacity-0 group-hover:opacity-100"
+              menuOpen ? "bg-ink/[0.06] text-ink opacity-100" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
             )}
             aria-label="More actions"
           >
@@ -447,18 +491,19 @@ function SegmentCard({
               setRenaming(false);
             }
           }}
+          aria-label="Rename survey"
           className="display w-full rounded-lg border-2 border-ink bg-white px-2 py-1 text-2xl font-extrabold text-ink outline-none"
         />
       ) : (
         <h3 className="display text-2xl font-extrabold text-ink">
-          {segment.name}
+          {highlightMatch(segment.name, query)}
         </h3>
       )}
-      <p className="mt-1.5 text-sm font-medium text-ink/55">{segment.blurb}</p>
+      <p className="mt-1.5 text-sm font-medium text-ink/55">{highlightMatch(segment.blurb, query)}</p>
 
       <div className="mt-5 flex-1 space-y-2.5 text-xs">
-        <Row label="Who" value={segment.definition} />
-        <Row label="We want to learn" value={segment.goal} />
+        <Row label="Who" value={segment.definition} query={query} />
+        <Row label="We want to learn" value={segment.goal} query={query} />
       </div>
 
       <div className="mt-6 flex items-center justify-between border-t border-ink/[0.07] pt-4">
@@ -505,7 +550,7 @@ function SegmentCard({
           </div>
           <div>
             <p className="display text-lg font-extrabold text-ink">
-              Delete “{segment.name}”?
+              Delete "{segment.name}"?
             </p>
             <p className="mt-1 text-sm text-ink/55">You can undo this.</p>
           </div>
@@ -648,6 +693,8 @@ function ImportModal({
 }) {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const dragCounter = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -682,6 +729,44 @@ function ImportModal({
     }
   };
 
+  const handleFile = useCallback((file: File) => {
+    file.text().then((t) => {
+      setText(t);
+      setError(null);
+    });
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current += 1;
+    if (dragCounter.current === 1) setDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current -= 1;
+    if (dragCounter.current === 0) setDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current = 0;
+      setDragging(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file) handleFile(file);
+    },
+    [handleFile]
+  );
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
@@ -689,7 +774,16 @@ function ImportModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-2xl border border-ink/10 bg-white p-6 shadow-2xl"
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          "w-full max-w-lg rounded-2xl border bg-white p-6 shadow-2xl transition-colors",
+          dragging
+            ? "border-2 border-dashed border-ink/40 bg-ink/[0.03]"
+            : "border border-ink/10"
+        )}
       >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold text-ink">Import / restore</h2>
@@ -702,18 +796,26 @@ function ImportModal({
         </div>
         <p className="mb-3 text-sm text-muted-foreground">
           Paste or load a <code>.json</code> file. A single survey is{" "}
-          <b>added</b>; a full <b>backup</b> (from “Back up”) <b>replaces</b> all
+          <b>added</b>; a full <b>backup</b> (from "Back up") <b>replaces</b> all
           surveys — undoable with ⌘Z.
         </p>
-        <textarea
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            setError(null);
-          }}
-          placeholder='{ "name": "…", "questions": [ … ] }'
-          className="h-44 w-full resize-none rounded-xl border border-ink/15 bg-white p-3 font-mono text-xs text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
-        />
+        {dragging ? (
+          <div className="flex h-44 w-full items-center justify-center rounded-xl border-2 border-dashed border-ink/30 bg-ink/[0.03]">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink/50">
+              <FileUp className="h-5 w-5" /> Drop JSON file here
+            </p>
+          </div>
+        ) : (
+          <textarea
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              setError(null);
+            }}
+            placeholder='{ "name": "…", "questions": [ … ] }'
+            className="h-44 w-full resize-none rounded-xl border border-ink/15 bg-white p-3 font-mono text-xs text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
+          />
+        )}
         {error && <p className="mt-2 text-xs font-medium text-red-600">{error}</p>}
         {preview?.kind === "backup" && !error && (
           <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-amber-600">
@@ -729,10 +831,7 @@ function ImportModal({
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (!f) return;
-            f.text().then((t) => {
-              setText(t);
-              setError(null);
-            });
+            handleFile(f);
           }}
         />
         <div className="mt-4 flex items-center justify-between">
@@ -768,13 +867,13 @@ function ImportModal({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, query }: { label: string; value: string; query: string }) {
   return (
     <div className="flex gap-2">
       <span className="w-[5.5rem] shrink-0 font-semibold uppercase tracking-wide text-ink/35">
         {label}
       </span>
-      <span className="line-clamp-2 text-ink/70">{value}</span>
+      <span className="line-clamp-2 text-ink/70">{highlightMatch(value, query)}</span>
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import {
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
   CornerDownRight,
   GripVertical,
   Plus,
@@ -71,6 +73,13 @@ export function QuestionEditor({
     const options = [...(question.options ?? []), "Other"];
     patch({ options });
   };
+  const moveOption = (i: number, direction: "up" | "down") => {
+    const options = [...(question.options ?? [])];
+    const j = direction === "up" ? i - 1 : i + 1;
+    if (j < 0 || j >= options.length) return;
+    [options[i], options[j]] = [options[j], options[i]];
+    patch({ options });
+  };
   const useFlavours = () => {
     const hadOther = (question.options ?? []).some((o) => /^other/i.test(o.trim()));
     patch({ options: [...flavours, ...(hadOther ? ["Other"] : [])] });
@@ -140,6 +149,7 @@ export function QuestionEditor({
           value={question.title}
           onChange={(e) => patch({ title: e.target.value })}
           rows={2}
+          aria-label="Question title"
           className="w-full resize-none rounded-lg border border-ink/20 bg-white px-3 py-2.5 text-lg font-bold text-ink focus:border-ink focus:outline-none"
         />
       </Field>
@@ -150,6 +160,7 @@ export function QuestionEditor({
           value={question.subtitle ?? ""}
           onChange={(e) => patch({ subtitle: e.target.value || undefined })}
           placeholder="Add a sub-line…"
+          aria-label="Question subtitle"
           className="w-full rounded-lg border border-ink/20 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none"
         />
       </Field>
@@ -164,9 +175,28 @@ export function QuestionEditor({
                 <div key={i} className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
                     <GripVertical className="h-4 w-4 shrink-0 text-ink/25" />
+                    <div className="flex shrink-0 flex-col">
+                      <button
+                        onClick={() => moveOption(i, "up")}
+                        disabled={i === 0}
+                        className="shrink-0 rounded-md p-0.5 text-ink/40 transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-30"
+                        aria-label="Move option up"
+                      >
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => moveOption(i, "down")}
+                        disabled={i === (question.options ?? []).length - 1}
+                        className="shrink-0 rounded-md p-0.5 text-ink/40 transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-30"
+                        aria-label="Move option down"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                     <input
                       value={opt}
                       onChange={(e) => setOption(i, e.target.value)}
+                      aria-label="Option text"
                       className={cn(
                         "flex-1 rounded-lg border bg-white px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none",
                         other ? "border-lime-dark" : "border-ink/20"
@@ -253,12 +283,14 @@ export function QuestionEditor({
               value={question.minLabel ?? ""}
               onChange={(e) => patch({ minLabel: e.target.value || undefined })}
               placeholder="Low end (e.g. Not likely)"
+              aria-label="Scale low-end label"
               className="flex-1 rounded-lg border border-ink/20 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none"
             />
             <input
               value={question.maxLabel ?? ""}
               onChange={(e) => patch({ maxLabel: e.target.value || undefined })}
               placeholder="High end (e.g. Very likely)"
+              aria-label="Scale high-end label"
               className="flex-1 rounded-lg border border-ink/20 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none"
             />
           </div>
