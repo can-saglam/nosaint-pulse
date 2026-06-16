@@ -315,6 +315,7 @@ export const exportSegment = (s: Segment): string => {
     blurb: s.blurb,
     accent: s.accent,
     status: s.status ?? "draft",
+    reward: s.reward ?? "pods",
     questions: s.questions.map(({ x, y, ...q }) => q),
   };
   return JSON.stringify(clean, null, 2);
@@ -347,6 +348,7 @@ export const parseSegment = (json: string, index: number): Segment => {
     blurb: raw.blurb ? String(raw.blurb) : "Imported survey.",
     accent: raw.accent === "lime" ? "lime" : "ink",
     status: "draft",
+    reward: raw.reward === "discount" ? "discount" : "pods",
     questions,
   };
 };
@@ -384,6 +386,7 @@ const normalizeSegment = (s: any, index: number): Segment => ({
   blurb: String(s?.blurb ?? ""),
   accent: s?.accent === "lime" ? "lime" : "ink",
   status: ["draft", "ready", "live"].includes(s?.status) ? s.status : "draft",
+  reward: s?.reward === "discount" ? "discount" : "pods",
   questions: Array.isArray(s?.questions) ? s.questions.map(normalizeQuestion) : [],
 });
 

@@ -65,6 +65,11 @@ export interface Segment {
   accent: "lime" | "ink";
   /** lifecycle state for the team */
   status?: SurveyStatus;
+  /**
+   * Completion incentive. "pods" = free pod pack (assumes they own a device);
+   * "discount" = first-order offer for no-device segments. Defaults to "pods".
+   */
+  reward?: "pods" | "discount";
   questions: Question[];
 }
 
@@ -77,6 +82,7 @@ export const segments: Segment[] = [
     goal: "Understand barriers to first purchase",
     blurb: "Recently active, hasn’t ordered yet.",
     accent: "lime",
+    reward: "discount",
     questions: [
       {
         id: "p1",
@@ -84,7 +90,9 @@ export const segments: Segment[] = [
         title: "How did you first hear about NO SAINT?",
         options: [
           "Social media",
+          "In a shop / on a shelf",
           "A friend",
+          "An influencer or review",
           "NFC tap on a device",
           "Google search",
           "Other",
@@ -257,6 +265,13 @@ export const segments: Segment[] = [
         ],
       },
       {
+        id: "r7",
+        type: "nps",
+        title: "How likely are you to recommend NO SAINT to a friend?",
+        minLabel: "Not at all likely",
+        maxLabel: "Extremely likely",
+      },
+      {
         id: "r6",
         type: "text",
         title: "Is there anything about the experience that frustrates you?",
@@ -274,6 +289,7 @@ export const segments: Segment[] = [
     goal: "Re-engage or understand lost intent",
     blurb: "Signed up, went quiet. Never ordered.",
     accent: "ink",
+    reward: "discount",
     questions: [
       {
         id: "dp1",
@@ -291,11 +307,17 @@ export const segments: Segment[] = [
           "No, I’ve stopped for now",
           "No, I never started — I was just curious",
         ],
+        // only ask "what's keeping you there" (dp3) of people on another brand
+        branches: {
+          "Yes, still deciding on a brand": "dp4",
+          "No, I’ve stopped for now": "dp4",
+          "No, I never started — I was just curious": "dp4",
+        },
       },
       {
         id: "dp3",
         type: "single",
-        title: "If you’re with another brand, what’s keeping you there?",
+        title: "What’s keeping you with your current brand?",
         options: [
           "Price",
           "Flavour range",
@@ -401,11 +423,18 @@ export const segments: Segment[] = [
           "I had an issue that put me off",
           "Life just got in the way — I’ll be back",
         ],
+        // only ask "what drew you away" (dr2) of people who actually switched
+        branches: {
+          "I’m vaping less or have stopped": "dr3",
+          Price: "dr3",
+          "I had an issue that put me off": "dr3",
+          "Life just got in the way — I’ll be back": "dr3",
+        },
       },
       {
         id: "dr2",
         type: "single",
-        title: "If you switched brands, what drew you away?",
+        title: "What drew you to the other brand?",
         options: [
           "Better flavours elsewhere",
           "Lower price",
@@ -417,7 +446,8 @@ export const segments: Segment[] = [
       {
         id: "dr3",
         type: "single",
-        title: "If you still have your device, would you come back for pods?",
+        title: "Would you come back for pods?",
+        subtitle: "If you still have your NO SAINT device.",
         options: [
           "Yes, actively thinking about it",
           "Maybe, with the right reason",

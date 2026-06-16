@@ -429,6 +429,19 @@ function DoneScreen({
   onExit: () => void;
   onRestart: () => void;
 }) {
+  // no-device segments get a first-order offer; everyone else a free pod pack
+  const reward =
+    segment.reward === "discount"
+      ? {
+          title: "Your starter offer is waiting.",
+          body: "We’ve added a first-order discount to your account — head to nosaint.co to claim it.",
+          cta: "Claim my offer",
+        }
+      : {
+          title: "Your FREE pod pack is waiting.",
+          body: "We’ve dropped a free pod pack into your Rewards page — head to nosaint.co to claim it.",
+          cta: "Go to my Rewards",
+        };
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -459,19 +472,16 @@ function DoneScreen({
           </div>
           <div>
             <p className="display text-xl font-extrabold text-ink">
-              Your FREE pod pack is waiting.
+              {reward.title}
             </p>
-            <p className="mt-1.5 text-sm font-medium text-ink/75">
-              We’ve dropped a free pod pack into your Rewards page — head to
-              nosaint.co to claim it.
-            </p>
+            <p className="mt-1.5 text-sm font-medium text-ink/75">{reward.body}</p>
             <a
               href="https://nosaint.co/account/rewards"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-6 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
             >
-              Go to my Rewards <ArrowRight className="h-4 w-4" />
+              {reward.cta} <ArrowRight className="h-4 w-4" />
             </a>
           </div>
         </div>
