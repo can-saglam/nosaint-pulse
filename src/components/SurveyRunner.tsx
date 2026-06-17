@@ -545,26 +545,17 @@ export function SurveyRunner({
               </div>
             </div>
           ) : (
-            <div className="mx-auto flex max-w-3xl gap-3">
+            // Advancing is handled by the in-question OK/Continue/Finish
+            // button (and Enter), so the footer only needs Back.
+            <div className="mx-auto flex max-w-3xl">
               <Button
                 variant="outline"
                 size="lg"
-                className="flex-1 sm:flex-none"
                 onClick={() => back()}
                 disabled={clampedStep === 0 && history.length === 0}
                 aria-label="Previous"
               >
                 <ArrowLeft className="h-4 w-4" /> Back
-              </Button>
-              <Button
-                variant={isAnswered ? "lime" : "outline"}
-                size="lg"
-                className="flex-[2] sm:flex-1"
-                onClick={() => advance()}
-                disabled={!isAnswered}
-                aria-label="Next"
-              >
-                Next <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           )}
