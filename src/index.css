@@ -84,8 +84,10 @@
 /* ─── Square buttons (toggle) ──────────────────────────────────────────
    Removes rounded corners from every <button>. Gated behind the
    `square-buttons` class on <html> (set in index.html).
-   To revert: remove that class from <html> — or delete this whole block. */
-html.square-buttons button {
+   Toggle switches (role="switch") stay rounded — a squared pill toggle
+   reads as broken. To revert: remove that class from <html> — or delete
+   this whole block. */
+html.square-buttons button:not([role="switch"]) {
   border-radius: 0 !important;
 }
 /* ─────────────────────────────────────────────────────────────────────── */

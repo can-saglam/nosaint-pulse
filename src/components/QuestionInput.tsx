@@ -156,6 +156,26 @@ function ChoiceInput({
     }
   };
 
+  // Keyboard: press the option's letter (A, B, …) to pick it. Ignored while
+  // typing in a field, or with a modifier held (so ⌘-shortcuts still work).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const idx = LETTERS.indexOf(e.key.toUpperCase());
+      const opts = question.options ?? [];
+      if (idx >= 0 && idx < opts.length) {
+        e.preventDefault();
+        toggle(opts[idx]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // re-subscribe when the option set or current selection changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question.options, selected, multi]);
+
   return (
     <div className="flex flex-col gap-2.5">
       {question.options!.map((opt, i) => {
@@ -177,7 +197,7 @@ function ChoiceInput({
           >
             <span
               className={cn(
-                "relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs font-bold transition-colors",
+                "relative hidden h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs font-bold transition-colors sm:flex",
                 isConfirmed
                   ? "border-lime bg-lime text-ink"
                   : isSel
@@ -239,6 +259,25 @@ function NumberScale({
 }) {
   const nums = [];
   for (let n = from; n <= to; n++) nums.push(n);
+
+  // Keyboard: number keys pick a value. On a 1–10 scale, "0" selects 10.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (!/^[0-9]$/.test(e.key)) return;
+      let n = parseInt(e.key, 10);
+      if (e.key === "0" && from === 1) n = 10;
+      if (n >= from && n <= to) {
+        e.preventDefault();
+        onChange(n);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [from, to, onChange]);
+
   return (
     <div className="flex flex-col gap-4">
       <div
