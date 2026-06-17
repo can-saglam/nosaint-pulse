@@ -479,6 +479,16 @@ export function SurveyRunner({
                       : "OK"}
                     <Check className="h-4 w-4" />
                   </Button>
+                  {!(clampedStep === 0 && history.length === 0) && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => back()}
+                      aria-label="Previous"
+                    >
+                      <ArrowLeft className="h-4 w-4" /> Back
+                    </Button>
+                  )}
                   <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
                     press
                     {question!.type === "text" ? (
@@ -495,70 +505,54 @@ export function SurveyRunner({
         </AnimatePresence>
       </main>
 
-      {/* Footer nav */}
-      {!done && !showWelcome && total > 0 && (
+      {/* Footer nav — only while editing; in run mode, Back sits next to OK */}
+      {editing && total > 0 && (
         <footer className="sticky bottom-0 z-20 bg-gradient-to-t from-canvas via-canvas to-transparent px-4 pb-5 pt-4 sm:px-8">
-          {editing ? (
-            <div className="mx-auto flex max-w-3xl items-center justify-between">
-              <span className="text-xs text-muted-foreground">
-                {editingWelcome
-                  ? "Editing the welcome screen — use the arrows for questions."
-                  : "Use the arrows to move between the welcome screen and questions."}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    // step back: question 1 → welcome screen
-                    if (editingWelcome) return;
-                    if (clampedStep === 0) {
-                      setDir(-1);
-                      setEditingWelcome(true);
-                    } else {
-                      go(clampedStep - 1);
-                    }
-                  }}
-                  disabled={editingWelcome}
-                  aria-label="Previous"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    // step forward: welcome screen → question 1
-                    if (editingWelcome) {
-                      setDir(1);
-                      setEditingWelcome(false);
-                      setStep(0);
-                    } else {
-                      go(clampedStep + 1);
-                    }
-                  }}
-                  disabled={!editingWelcome && clampedStep >= total - 1}
-                  aria-label="Next"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            // Advancing is handled by the in-question OK/Continue/Finish
-            // button (and Enter), so the footer only needs Back.
-            <div className="mx-auto flex max-w-3xl">
+          <div className="mx-auto flex max-w-3xl items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              {editingWelcome
+                ? "Editing the welcome screen — use the arrows for questions."
+                : "Use the arrows to move between the welcome screen and questions."}
+            </span>
+            <div className="flex gap-2">
               <Button
                 variant="outline"
-                size="lg"
-                onClick={() => back()}
-                disabled={clampedStep === 0 && history.length === 0}
+                size="icon"
+                onClick={() => {
+                  // step back: question 1 → welcome screen
+                  if (editingWelcome) return;
+                  if (clampedStep === 0) {
+                    setDir(-1);
+                    setEditingWelcome(true);
+                  } else {
+                    go(clampedStep - 1);
+                  }
+                }}
+                disabled={editingWelcome}
                 aria-label="Previous"
               >
-                <ArrowLeft className="h-4 w-4" /> Back
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  // step forward: welcome screen → question 1
+                  if (editingWelcome) {
+                    setDir(1);
+                    setEditingWelcome(false);
+                    setStep(0);
+                  } else {
+                    go(clampedStep + 1);
+                  }
+                }}
+                disabled={!editingWelcome && clampedStep >= total - 1}
+                aria-label="Next"
+              >
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
-          )}
+          </div>
         </footer>
       )}
     </div>
