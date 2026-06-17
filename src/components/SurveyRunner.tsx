@@ -48,6 +48,8 @@ export function SurveyRunner({
   );
   const [otherAnswers, setOtherAnswers] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(initialEditing);
+  // when true, the editor targets the welcome copy rather than a question
+  const [editingWelcome, setEditingWelcome] = useState(false);
   // show the welcome intro first on a fresh run; skip it when jumping to a
   // question or opening straight into the editor
   const [started, setStarted] = useState(initialEditing || initialStep > 0);
@@ -132,6 +134,16 @@ export function SurveyRunner({
   // ----- survey authoring mutators -----
   const writeQuestions = (questions: Question[]) =>
     onUpdateSegment({ ...segment, questions });
+
+  const setWelcome = (patch: Partial<NonNullable<Segment["welcome"]>>) =>
+    onUpdateSegment({
+      ...segment,
+      welcome: {
+        title: segment.welcome?.title ?? "",
+        body: segment.welcome?.body ?? "",
+        ...patch,
+      },
+    });
 
   const updateQuestion = (next: Question) =>
     writeQuestions(
@@ -236,7 +248,12 @@ export function SurveyRunner({
               variant={editing ? "lime" : "outline"}
               size="sm"
               onClick={() => {
-                setEditing((e) => !e);
+                setEditing((e) => {
+                  const next = !e;
+                  // entering edit from the welcome screen → edit the welcome copy
+                  setEditingWelcome(next && showWelcome);
+                  return next;
+                });
                 if (done) setStep(0);
               }}
             >
@@ -285,6 +302,38 @@ export function SurveyRunner({
             />
           ) : total === 0 ? (
             <EmptyState key="empty" onAdd={addQuestion} />
+          ) : editing && editingWelcome ? (
+            <motion.div
+              key="edit-welcome"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25 }}
+              className="w-full py-12"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-sm font-bold text-ink/40">
+                  Welcome screen
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDir(1);
+                    setEditingWelcome(false);
+                    setStep(0);
+                  }}
+                >
+                  Edit questions{" "}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <WelcomeEditor
+                welcome={segment.welcome}
+                questionCount={total}
+                onChange={setWelcome}
+              />
+            </motion.div>
           ) : editing ? (
             <motion.div
               key={`edit-${question!.id}`}
@@ -397,14 +446,25 @@ export function SurveyRunner({
           {editing ? (
             <div className="mx-auto flex max-w-3xl items-center justify-between">
               <span className="text-xs text-muted-foreground">
-                Use the arrows to move between questions while editing.
+                {editingWelcome
+                  ? "Editing the welcome screen — use the arrows for questions."
+                  : "Use the arrows to move between the welcome screen and questions."}
               </span>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => go(clampedStep - 1)}
-                  disabled={clampedStep === 0}
+                  onClick={() => {
+                    // step back: question 1 → welcome screen
+                    if (editingWelcome) return;
+                    if (clampedStep === 0) {
+                      setDir(-1);
+                      setEditingWelcome(true);
+                    } else {
+                      go(clampedStep - 1);
+                    }
+                  }}
+                  disabled={editingWelcome}
                   aria-label="Previous"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -412,8 +472,17 @@ export function SurveyRunner({
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => go(clampedStep + 1)}
-                  disabled={clampedStep >= total - 1}
+                  onClick={() => {
+                    // step forward: welcome screen → question 1
+                    if (editingWelcome) {
+                      setDir(1);
+                      setEditingWelcome(false);
+                      setStep(0);
+                    } else {
+                      go(clampedStep + 1);
+                    }
+                  }}
+                  disabled={!editingWelcome && clampedStep >= total - 1}
                   aria-label="Next"
                 >
                   <ArrowRight className="h-4 w-4" />
@@ -506,6 +575,80 @@ function WelcomeScreen({
         </span>
       </div>
     </motion.div>
+  );
+}
+
+function WelcomeEditor({
+  welcome,
+  questionCount,
+  onChange,
+}: {
+  welcome?: { title: string; body: string };
+  questionCount: number;
+  onChange: (patch: Partial<{ title: string; body: string }>) => void;
+}) {
+  return (
+    <div className="rounded-2xl border-2 border-dashed border-lime-dark bg-ink/[0.03] p-5 sm:p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-lime">
+          Editing
+        </span>
+        <span className="text-xs text-muted-foreground">
+          The intro shown before the first question.
+        </span>
+      </div>
+
+      <div className="mb-4">
+        <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/45">
+          Headline
+        </p>
+        <textarea
+          value={welcome?.title ?? ""}
+          onChange={(e) => onChange({ title: e.target.value })}
+          rows={2}
+          placeholder="e.g. Got a minute?"
+          aria-label="Welcome headline"
+          className="w-full resize-none rounded-lg border border-ink/20 bg-white px-3 py-2.5 text-lg font-bold text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none"
+        />
+      </div>
+
+      <div className="mb-4">
+        <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/45">
+          Message
+        </p>
+        <textarea
+          value={welcome?.body ?? ""}
+          onChange={(e) => onChange({ body: e.target.value })}
+          rows={4}
+          placeholder="A line or two of context…"
+          aria-label="Welcome message"
+          className="w-full resize-none rounded-lg border border-ink/20 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-ink focus:outline-none"
+        />
+      </div>
+
+      {/* live preview */}
+      <div className="rounded-xl border border-ink/10 bg-canvas p-5">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-ink/35">
+          Preview
+        </p>
+        <h1 className="display-tight mt-2 max-w-2xl text-2xl font-black text-ink sm:text-3xl">
+          {welcome?.title || "Got a minute?"}
+        </h1>
+        {welcome?.body && (
+          <p className="mt-3 max-w-xl text-base text-muted-foreground">
+            {welcome.body}
+          </p>
+        )}
+        <div className="mt-5 flex items-center gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full bg-lime px-5 py-2 text-sm font-semibold text-ink">
+            Start <ArrowRight className="h-4 w-4" />
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {questionCount} questions · under a minute
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
 
