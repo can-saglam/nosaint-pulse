@@ -87,7 +87,8 @@
    Toggle switches (role="switch") stay rounded — a squared pill toggle
    reads as broken. To revert: remove that class from <html> — or delete
    this whole block. */
-html.square-buttons button:not([role="switch"]) {
+html.square-buttons button:not([role="switch"]),
+html.square-buttons .sq-btn {
   border-radius: 0 !important;
 }
 /* ─────────────────────────────────────────────────────────────────────── */

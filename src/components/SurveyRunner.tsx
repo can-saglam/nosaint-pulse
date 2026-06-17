@@ -779,7 +779,7 @@ function DoneScreen({
               href="https://nosaint.co/account/rewards"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-6 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
+              className="sq-btn mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-6 text-sm font-semibold text-white transition-colors hover:bg-ink/90"
             >
               {reward.cta} <ArrowRight className="h-4 w-4" />
             </a>
