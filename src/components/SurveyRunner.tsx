@@ -9,7 +9,9 @@ import {
   Gift,
   Pencil,
   Plus,
+  Redo2,
   Trash2,
+  Undo2,
   Workflow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,10 @@ export function SurveyRunner({
   initialStep = 0,
   initialEditing = false,
   initialAnswers,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
 }: {
   segment: Segment;
   onExit: () => void;
@@ -37,6 +43,10 @@ export function SurveyRunner({
   initialStep?: number;
   initialEditing?: boolean;
   initialAnswers?: Record<string, AnswerValue>;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }) {
   const total = segment.questions.length;
   const sample = !!initialAnswers;
@@ -59,6 +69,27 @@ export function SurveyRunner({
   const showWelcome = !started && !editing && total > 0 && !done;
   const question = done ? null : segment.questions[clampedStep] ?? null;
   const current = question ? answers[question.id] : null;
+
+  // Branching means a respondent rarely sees every question, so the total is a
+  // ceiling, not a promise. Track how many they've actually reached for an
+  // honest, monotonic progress bar + count.
+  const hasBranches = useMemo(
+    () =>
+      segment.questions.some(
+        (q) => q.branches && Object.keys(q.branches).length > 0
+      ),
+    [segment.questions]
+  );
+  // questions answered before the current one (history is the visited stack)
+  const askedSoFar = history.length;
+  const questionNumber = askedSoFar + 1;
+  const progressPct = done
+    ? 100
+    : showWelcome
+    ? 0
+    : total
+    ? Math.min(100, (askedSoFar / total) * 100)
+    : 0;
 
   const isAnswered = useMemo(() => {
     if (!question) return false;
@@ -230,7 +261,9 @@ export function SurveyRunner({
             {!showWelcome && <span className="hidden sm:inline">{segment.name}</span>}
             {!done && !showWelcome && total > 0 && (
               <span className="shrink-0 whitespace-nowrap rounded-full bg-ink/[0.06] px-2.5 py-1 tabular-nums">
-                {Math.min(clampedStep + 1, total)} / {total}
+                {hasBranches
+                  ? `Q${questionNumber}`
+                  : `${Math.min(questionNumber, total)} / ${total}`}
               </span>
             )}
             {onOpenCanvas && (
@@ -243,6 +276,29 @@ export function SurveyRunner({
                 <Workflow className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Flow</span>
               </Button>
+            )}
+            {editing && (onUndo || onRedo) && (
+              <div className="flex items-center overflow-hidden rounded-lg border border-ink/15">
+                <button
+                  onClick={onUndo}
+                  disabled={!canUndo}
+                  aria-label="Undo"
+                  title="Undo (⌘Z)"
+                  className="flex h-8 w-8 items-center justify-center text-ink/70 transition-colors hover:bg-ink/[0.06] hover:text-ink disabled:opacity-30"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </button>
+                <span className="h-5 w-px bg-ink/10" />
+                <button
+                  onClick={onRedo}
+                  disabled={!canRedo}
+                  aria-label="Redo"
+                  title="Redo (⌘⇧Z)"
+                  className="flex h-8 w-8 items-center justify-center text-ink/70 transition-colors hover:bg-ink/[0.06] hover:text-ink disabled:opacity-30"
+                >
+                  <Redo2 className="h-4 w-4" />
+                </button>
+              </div>
             )}
             <Button
               variant={editing ? "lime" : "outline"}
@@ -269,12 +325,7 @@ export function SurveyRunner({
             </Button>
           </div>
         </div>
-        <Progress
-          value={
-            done ? 100 : showWelcome ? 0 : total ? (clampedStep / total) * 100 : 0
-          }
-          label="Survey progress"
-        />
+        <Progress value={progressPct} label="Survey progress" />
       </header>
 
       {/* Body */}
@@ -421,7 +472,11 @@ export function SurveyRunner({
                     onClick={advance}
                     disabled={!isAnswered}
                   >
-                    {nextStep >= total ? "Finish" : "OK"}
+                    {nextStep >= total
+                      ? "Finish"
+                      : question!.type === "multi"
+                      ? "Continue"
+                      : "OK"}
                     <Check className="h-4 w-4" />
                   </Button>
                   <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
@@ -571,7 +626,12 @@ function WelcomeScreen({
           Start <ArrowRight className="h-4 w-4" />
         </Button>
         <span className="text-sm text-muted-foreground">
-          {segment.questions.length} questions · under a minute
+          {segment.questions.some(
+            (q) => q.branches && Object.keys(q.branches).length > 0
+          )
+            ? `Up to ${segment.questions.length} questions`
+            : `${segment.questions.length} questions`}{" "}
+          · under a minute
         </span>
       </div>
     </motion.div>
@@ -681,9 +741,21 @@ function DoneScreen({
       transition={{ duration: 0.4 }}
       className="w-full py-16 text-center"
     >
-      <div className="mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-full bg-lime">
-        <Check className="h-8 w-8 text-ink" strokeWidth={3} />
-      </div>
+      <motion.div
+        initial={{ scale: 0, rotate: -25 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.1 }}
+        className="relative mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-full bg-lime"
+      >
+        {/* expanding ring burst */}
+        <motion.span
+          initial={{ scale: 1, opacity: 0.55 }}
+          animate={{ scale: 2.1, opacity: 0 }}
+          transition={{ duration: 0.7, delay: 0.25, ease: "easeOut" }}
+          className="absolute inset-0 rounded-full bg-lime"
+        />
+        <Check className="relative h-8 w-8 text-ink" strokeWidth={3} />
+      </motion.div>
       <h2 className="display-tight mx-auto max-w-xl text-4xl font-black text-ink sm:text-5xl">
         That’s everything.
       </h2>
@@ -693,15 +765,20 @@ function DoneScreen({
 
       {/* Reward */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.25, duration: 0.4 }}
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ delay: 0.35, type: "spring", stiffness: 200, damping: 20 }}
         className="mx-auto mt-9 max-w-md overflow-hidden rounded-2xl border-2 border-ink bg-lime p-6 text-left"
       >
         <div className="flex items-start gap-3.5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink">
+          <motion.div
+            initial={{ rotate: -12, scale: 0.7 }}
+            animate={{ rotate: 0, scale: 1 }}
+            transition={{ delay: 0.55, type: "spring", stiffness: 320, damping: 11 }}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink"
+          >
             <Gift className="h-5 w-5 text-lime" />
-          </div>
+          </motion.div>
           <div>
             <p className="display text-xl font-extrabold text-ink">
               {reward.title}

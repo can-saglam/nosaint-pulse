@@ -1,13 +1,20 @@
 import { useState } from "react";
 import {
   AlertTriangle,
+  CircleDot,
   ChevronDown,
   ChevronUp,
   CornerDownRight,
+  Gauge,
   GripVertical,
+  ListChecks,
   Plus,
+  SlidersHorizontal,
   Sparkles,
+  Star,
+  Type,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,13 +25,13 @@ import {
   type QuestionType,
 } from "@/data/surveys";
 
-const TYPES: { value: QuestionType; label: string }[] = [
-  { value: "single", label: "Single select" },
-  { value: "multi", label: "Multi select" },
-  { value: "text", label: "Free text" },
-  { value: "rating", label: "Star rating" },
-  { value: "scale", label: "Scale 1–10" },
-  { value: "nps", label: "NPS 0–10" },
+const TYPES: { value: QuestionType; label: string; icon: LucideIcon }[] = [
+  { value: "single", label: "Single select", icon: CircleDot },
+  { value: "multi", label: "Multi select", icon: ListChecks },
+  { value: "text", label: "Free text", icon: Type },
+  { value: "rating", label: "Star rating", icon: Star },
+  { value: "scale", label: "Scale 1–10", icon: SlidersHorizontal },
+  { value: "nps", label: "NPS 0–10", icon: Gauge },
 ];
 
 const hasOptions = (t: QuestionType) => t === "single" || t === "multi";
@@ -143,12 +150,13 @@ export function QuestionEditor({
               key={t.value}
               onClick={() => changeType(t.value)}
               className={cn(
-                "rounded-full border px-3 py-2 text-xs font-semibold transition-colors",
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors",
                 question.type === t.value
                   ? "border-ink bg-ink text-white"
                   : "border-ink/20 bg-white text-ink/70 hover:border-ink/50"
               )}
             >
+              <t.icon className="h-3.5 w-3.5" />
               {t.label}
             </button>
           ))}
@@ -186,15 +194,18 @@ export function QuestionEditor({
               return (
                 <div
                   key={i}
-                  draggable
-                  onDragStart={() => setDragIndex(i)}
-                  onDragOver={(e) => { e.preventDefault(); setDragOverIndex(i); }}
+                  // The row is a drop target; dragging is started only from the
+                  // grip handle so it doesn't fight with the text input.
+                  onDragOver={(e) => {
+                    if (dragIndex === null) return;
+                    e.preventDefault();
+                    setDragOverIndex(i);
+                  }}
                   onDrop={() => {
                     if (dragIndex !== null) moveOptionDrag(dragIndex, i);
                     setDragIndex(null);
                     setDragOverIndex(null);
                   }}
-                  onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
                   className={cn(
                     "flex flex-col gap-1.5 transition-opacity",
                     dragIndex === i && "opacity-40",
@@ -202,7 +213,16 @@ export function QuestionEditor({
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-ink/25 active:cursor-grabbing" />
+                    <span
+                      draggable
+                      onDragStart={() => setDragIndex(i)}
+                      onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
+                      aria-label="Drag to reorder"
+                      title="Drag to reorder"
+                      className="hidden shrink-0 cursor-grab text-ink/25 hover:text-ink/50 active:cursor-grabbing sm:block"
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </span>
                     <div className="flex shrink-0 flex-col">
                       <button
                         onClick={() => moveOption(i, "up")}

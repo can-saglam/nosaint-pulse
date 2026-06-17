@@ -406,6 +406,10 @@ export default function App() {
         onUpdateSegment={updateSegment}
         onExit={exit}
         onOpenCanvas={() => openCanvas(active.id)}
+        canUndo={past.length > 0}
+        canRedo={future.length > 0}
+        onUndo={undo}
+        onRedo={redo}
       />
       </>
     );

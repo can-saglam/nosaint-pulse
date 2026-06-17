@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Copy,
   CornerDownRight,
-  Download,
   Gift,
   GripHorizontal,
   Maximize2,
@@ -21,7 +20,6 @@ import {
   Redo2,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
   Star,
   Trash2,
   Type,
@@ -40,11 +38,9 @@ import {
   duplicateQuestion,
   questionTemplates,
   sampleAnswers,
-  simulateResponses,
   statusMeta,
   validateSurvey,
   type Issue,
-  type SimResult,
 } from "@/lib/survey-utils";
 import { cn } from "@/lib/utils";
 
@@ -103,9 +99,7 @@ export function FlowCanvas({
   const [ty, setTy] = useState(200);
   const [scale, setScale] = useState(1);
   const [showDetails, setShowDetails] = useState(false);
-  const [panel, setPanel] = useState<null | "checks" | "simulate" | "welcome">(
-    null
-  );
+  const [panel, setPanel] = useState<null | "checks" | "welcome">(null);
   const [addOpen, setAddOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -569,19 +563,6 @@ export function FlowCanvas({
           </Button>
 
           <Button
-            variant={panel === "simulate" ? "lime" : "outline"}
-            size="sm"
-            className="hidden shrink-0 sm:inline-flex"
-            onClick={() => {
-              setShowDetails(false);
-              setPanel(panel === "simulate" ? null : "simulate");
-            }}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Simulate</span>
-          </Button>
-
-          <Button
             variant={showDetails ? "lime" : "outline"}
             size="sm"
             className="hidden shrink-0 sm:inline-flex"
@@ -598,9 +579,7 @@ export function FlowCanvas({
           <div className="relative shrink-0 sm:hidden">
             <Button
               variant={
-                panel === "checks" || panel === "simulate" || showDetails
-                  ? "lime"
-                  : "outline"
+                panel === "checks" || showDetails ? "lime" : "outline"
               }
               size="sm"
               onClick={() => setMoreOpen((o) => !o)}
@@ -649,15 +628,6 @@ export function FlowCanvas({
                       {issues.length}
                     </span>
                   )}
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    setShowDetails(false);
-                    setPanel(panel === "simulate" ? null : "simulate");
-                    setMoreOpen(false);
-                  }}
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-ink/50" /> Simulate
                 </MenuItem>
                 <MenuItem
                   onClick={() => {
@@ -974,10 +944,6 @@ export function FlowCanvas({
             onClose={() => setPanel(null)}
             onGoto={(i) => onOpenRunner(i, true)}
           />
-        )}
-
-        {panel === "simulate" && (
-          <SimulatePanel segment={segment} onClose={() => setPanel(null)} />
         )}
 
         {/* Zoom controls */}
@@ -1623,161 +1589,6 @@ function ChecksPanel({
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function SimulatePanel({
-  segment,
-  onClose,
-}: {
-  segment: Segment;
-  onClose: () => void;
-}) {
-  const [n, setN] = useState(100);
-  const [customN, setCustomN] = useState("");
-  const [results, setResults] = useState<SimResult[] | null>(null);
-  const effectiveN = customN ? Math.max(1, Math.min(5000, Number(customN) || 0)) : n;
-  const run = () => setResults(simulateResponses(segment, effectiveN));
-
-  const exportCsv = useCallback(() => {
-    if (!results) return;
-    const lines = results.map((r) => {
-      const detail = r.counts
-        ? Object.entries(r.counts).map(([k, v]) => `${k}: ${v}`).join("; ")
-        : r.histogram
-        ? Object.entries(r.histogram).map(([k, v]) => `${k}: ${v}`).join("; ") + ` (avg ${r.avg?.toFixed(1) ?? "–"})`
-        : `${r.total} free-text responses`;
-      return `"Q${r.index + 1}","${r.title.replace(/"/g, '""')}","${detail}"`;
-    });
-    const csv = "Question,Title,Results\n" + lines.join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${segment.name.replace(/\s+/g, "-").toLowerCase()}-sim.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [results, segment.name]);
-
-  return (
-    <div className="absolute left-2 right-2 sm:left-auto sm:right-4 top-4 z-30 flex max-h-[calc(100vh-7rem)] w-auto sm:w-[360px] max-w-[calc(100%-2rem)] flex-col rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-bold text-ink">
-          <Sparkles className="h-4 w-4" /> Simulate responses
-        </p>
-        <button
-          onClick={onClose}
-          className="rounded-md p-1 text-ink/40 hover:bg-ink/5 hover:text-ink"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      <p className="mb-3 text-xs text-muted-foreground">
-        Generates random respondents through the flow (respecting skip-logic) to
-        sanity-check distributions.
-      </p>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {[50, 100, 500].map((v) => (
-          <button
-            key={v}
-            onClick={() => { setN(v); setCustomN(""); }}
-            className={cn(
-              "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
-              !customN && n === v ? "border-ink bg-ink text-white" : "border-ink/15 text-ink/60 hover:border-ink/40"
-            )}
-          >
-            {v}
-          </button>
-        ))}
-        <input
-          type="number"
-          min={1}
-          max={5000}
-          value={customN}
-          onChange={(e) => setCustomN(e.target.value)}
-          placeholder="Custom"
-          aria-label="Custom sample size"
-          className="w-20 rounded-full border border-ink/15 px-3 py-1 text-xs font-semibold text-ink tabular-nums placeholder:text-ink/30 focus:border-ink focus:outline-none"
-        />
-        <button
-          onClick={run}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-lime px-3.5 py-1.5 text-xs font-bold text-ink hover:bg-lime-dark"
-        >
-          <Sparkles className="h-3.5 w-3.5" /> Run
-        </button>
-      </div>
-      {results && (
-        <>
-          <div className="-mr-1 space-y-4 overflow-auto pr-1">
-            {results.map((r) => (
-              <SimRow key={r.questionId} r={r} />
-            ))}
-          </div>
-          <button
-            onClick={exportCsv}
-            className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold text-ink/60 transition-colors hover:border-ink hover:text-ink"
-          >
-            <Download className="h-3.5 w-3.5" /> Export CSV
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
-
-function SimRow({ r }: { r: SimResult }) {
-  return (
-    <div>
-      <p className="mb-1.5 line-clamp-1 text-xs font-bold text-ink">
-        Q{r.index + 1}. {r.title}
-      </p>
-      {r.counts ? (
-        <Bars
-          data={Object.entries(r.counts).sort((a, b) => b[1] - a[1])}
-          total={Math.max(1, ...Object.values(r.counts))}
-        />
-      ) : r.histogram ? (
-        <>
-          {r.avg != null && (
-            <p className="mb-1 text-[11px] font-semibold text-ink/50">
-              avg {r.avg.toFixed(1)}
-            </p>
-          )}
-          <Bars
-            data={Object.entries(r.histogram).sort(
-              (a, b) => Number(a[0]) - Number(b[0])
-            )}
-            total={Math.max(1, ...Object.values(r.histogram))}
-          />
-        </>
-      ) : (
-        <p className="text-[11px] text-ink/40">Free text · {r.total} responses</p>
-      )}
-    </div>
-  );
-}
-
-function Bars({ data, total }: { data: [string, number][]; total: number }) {
-  return (
-    <div className="space-y-1">
-      {data.map(([label, val]) => (
-        <div key={label} className="flex items-center gap-2">
-          <span className="w-28 shrink-0 truncate text-[11px] text-ink/60" title={label}>
-            {label}
-          </span>
-          <div className="h-3 flex-1 overflow-hidden rounded bg-ink/[0.06]">
-            <div
-              className="h-full rounded bg-lime"
-              style={{ width: `${(val / total) * 100}%` }}
-            />
-          </div>
-          <span className="w-7 shrink-0 text-right text-[11px] font-semibold tabular-nums text-ink/70">
-            {val}
-          </span>
-        </div>
-      ))}
     </div>
   );
 }
