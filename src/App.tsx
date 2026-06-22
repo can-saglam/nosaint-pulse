@@ -151,22 +151,35 @@ export default function App() {
   }, []);
 
   // ----- save & discard -----
+  const lastSyncErrToast = useRef(0); // throttle the "sync failed" toast
   const save = useCallback(() => {
     const data = surveysRef.current;
     // persist to localStorage
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch { /* storage full */ }
-    // push to Firestore (immediate) — skip if cloud is in a known error state
-    if (isCloud && syncedOnce.current && cloudStatusRef.current !== "error") {
+    // Always re-attempt the cloud push so a transient failure self-heals on
+    // the next save (rather than silently staying local-only). The error
+    // toast is throttled so a persistent outage doesn't spam.
+    if (isCloud && syncedOnce.current) {
       const json = JSON.stringify(data);
       if (json !== lastSyncedRef.current) {
         pushCloud(data)
-          .then(() => { lastSyncedRef.current = json; })
+          .then(() => {
+            lastSyncedRef.current = json;
+            if (cloudStatusRef.current !== "synced") {
+              cloudStatusRef.current = "synced";
+              setCloudStatus("synced");
+            }
+          })
           .catch(() => {
             cloudStatusRef.current = "error";
             setCloudStatus("error");
-            toast("Sync failed — changes saved locally", "error");
+            const now = Date.now();
+            if (now - lastSyncErrToast.current > 8000) {
+              lastSyncErrToast.current = now;
+              toast("Saved on this device — cloud sync failed, will retry", "error");
+            }
           });
       }
     }
