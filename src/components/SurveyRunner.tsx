@@ -466,6 +466,16 @@ export function SurveyRunner({
                 />
 
                 <div className="mt-8 flex items-center gap-3">
+                  {!(clampedStep === 0 && history.length === 0) && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => back()}
+                      aria-label="Previous"
+                    >
+                      <ArrowLeft className="h-4 w-4" /> Back
+                    </Button>
+                  )}
                   <Button
                     variant="lime"
                     size="lg"
@@ -479,16 +489,6 @@ export function SurveyRunner({
                       : "OK"}
                     <Check className="h-4 w-4" />
                   </Button>
-                  {!(clampedStep === 0 && history.length === 0) && (
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={() => back()}
-                      aria-label="Previous"
-                    >
-                      <ArrowLeft className="h-4 w-4" /> Back
-                    </Button>
-                  )}
                   <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
                     press
                     {question!.type === "text" ? (
